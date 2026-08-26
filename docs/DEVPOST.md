@@ -35,7 +35,7 @@ Vite + React + TypeScript · Zustand (state) · Zod → JSON Schema (tool schema
 
 ## Links
 - **GitHub:** https://github.com/charlie-troy/webmcp-board
-- **Live demo:** [DEPLOY_URL_PLACEHOLDER]
+- **Live demo:** https://webmcp-board.vercel.app
 - **Video:** [YOUTUBE_URL_PLACEHOLDER] (script: `docs/VIDEO_SCRIPT.md`)
 
 ## Team
