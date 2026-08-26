@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Board } from "./components/Board";
 import { ActivityPanel } from "./components/ActivityPanel";
 import { initWebMCP, getWebMCPStatus } from "./webmcp/modelContext";
+import { useWebMCPStatus } from "./webmcp/statusStore";
 import { registerAllTools } from "./webmcp/tools";
 
 export default function App() {
@@ -41,10 +42,7 @@ export default function App() {
 }
 
 function McpBadge() {
-  const [mode, setMode] = useState<string>("checking");
-  useEffect(() => {
-    setMode(getWebMCPStatus().mode);
-  }, []);
+  const mode = useWebMCPStatus((s) => s.mode);
   return (
     <div className={`mcp-badge ${mode}`} role="status">
       {mode === "native" && "● WebMCP native"}
