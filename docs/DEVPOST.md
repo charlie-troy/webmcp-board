@@ -46,7 +46,7 @@ Vite + React + TypeScript · Zustand (state) · Zod → JSON Schema (tool schema
 - **Video:** [YOUTUBE_URL_PLACEHOLDER] (script: `docs/VIDEO_SCRIPT.md`)
 
 ## Team
-[Your name] — solo
+Charlie Troy — solo
 
 ## Tags
 webmcp, ai-agents, accessibility, a11y, kanban, productivity
