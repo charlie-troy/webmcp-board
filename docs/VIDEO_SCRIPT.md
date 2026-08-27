@@ -27,9 +27,9 @@ Captions on. Record each section in one continuous take; the cut points are the 
 
 ### 0:40–1:45 — The magic
 **Visual:** ChatGPT desktop (or flagged Chrome), site open. Type prompts; watch cards move and the Agent Activity panel log each call.
-**Prompt 1:** `What's on the board? What's due soon?`
-**Tool call:** `summarize_board` (returns counts per column, workload per assignee, due dates).
-**VO:** "Ask what's on the board and it reads the real state — columns, assignees, priorities, due dates. Not pixels. Data."
+**Prompt 1:** `What's on the board? Anything overdue or due this week?`
+**Tool call:** `summarize_board` (returns counts per column, workload per assignee, overdue cards, and the next seven days of due dates).
+**VO:** "Ask what needs attention and it reads the real state — columns, assignees, priorities, overdue work, and what's due next. Not pixels. Data."
 **Prompt 2:** `Move "Ship dark mode toggle" to In Progress and make it urgent.`
 **Tool calls:** `move_card` → `set_priority(urgent)` (column re-sorts by priority).
 **VO:** "'Move the dark mode toggle to In Progress and make it urgent.' The card glides over, the column re-sorts by priority — exactly what a human drag would do, in one sentence."

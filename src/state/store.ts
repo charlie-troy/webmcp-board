@@ -51,6 +51,7 @@ interface BoardState {
     byAssignee: Record<string, number>;
     byPriority: Record<string, number>;
     overdue: Array<{ title: string; dueDate: string; column: string }>;
+    dueSoon: Array<{ title: string; dueDate: string; column: string }>;
   };
   undoLastAgentAction: () => { label: string } | null;
 }
@@ -205,7 +206,11 @@ export const useBoard = create<BoardState>((set, get) => {
       const byAssignee: Record<string, number> = {};
       const byPriority: Record<string, number> = {};
       const overdue: Array<{ title: string; dueDate: string; column: string }> = [];
+      const dueSoon: Array<{ title: string; dueDate: string; column: string }> = [];
       const today = new Date().toISOString().slice(0, 10);
+      const sevenDaysFromNow = new Date(`${today}T00:00:00Z`);
+      sevenDaysFromNow.setUTCDate(sevenDaysFromNow.getUTCDate() + 7);
+      const dueSoonThrough = sevenDaysFromNow.toISOString().slice(0, 10);
       let total = 0;
       for (const column of board.columns) {
         for (const card of column.cards) {
@@ -215,14 +220,25 @@ export const useBoard = create<BoardState>((set, get) => {
           if (card.dueDate && card.dueDate < today && column.id !== "done") {
             overdue.push({ title: card.title, dueDate: card.dueDate, column: column.title });
           }
+          if (
+            card.dueDate &&
+            card.dueDate >= today &&
+            card.dueDate <= dueSoonThrough &&
+            column.id !== "done"
+          ) {
+            dueSoon.push({ title: card.title, dueDate: card.dueDate, column: column.title });
+          }
         }
       }
+      overdue.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+      dueSoon.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
       return {
         total,
         columns: board.columns.map((c) => ({ id: c.id, title: c.title, count: c.cards.length })),
         byAssignee,
         byPriority,
         overdue,
+        dueSoon,
       };
     },
 

@@ -20,7 +20,7 @@ The WebMCP standard explicitly names *improving accessibility through agents* as
 
 ## How it works / demo flow
 1. Open the site in ChatGPT's desktop browser (or Chrome with the WebMCP flag).
-2. *"What's on the board? What's due soon?"* → `summarize_board` reads real state (columns, assignees, priorities, due dates).
+2. *"What's on the board? Anything overdue or due this week?"* → `summarize_board` reads real state (columns, assignees, priorities, overdue cards, and the next seven days of due dates).
 3. *"Move 'Ship dark mode toggle' to In Progress and make it urgent."* → `move_card` + `set_priority`; the column re-sorts live.
 4. *"Create a card: 'A11y audit of settings page', assign to Sam, due September 4th."* → one `create_card` call.
 5. *"Undo the last change."* → `undo_last_agent_action`.

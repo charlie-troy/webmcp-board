@@ -26,7 +26,7 @@ interfaces. This app is that idea, productized:
 
 | Tool | Kind | Description |
 |---|---|---|
-| `summarize_board` | read | Counts per column, workload per assignee, overdue cards |
+| `summarize_board` | read | Counts per column, workload per assignee, overdue and due-soon cards |
 | `search_cards` | read | Keyword search across title/description/assignee |
 | `create_card` | action | With column, assignee, due date, priority |
 | `move_card` | action | Move between columns, optional 0-based position |
@@ -42,7 +42,7 @@ interfaces. This app is that idea, productized:
 Open the deployed site in ChatGPT's desktop browser (GPT-5.6 Sol/Terra) or Chrome with
 `chrome://flags/#enable-webmcp-testing` enabled, then ask:
 
-> *"What's on the board? Anything overdue?"*
+> *"What's on the board? Anything overdue or due this week?"*
 > *"Move 'Ship dark mode toggle' to In Progress and set it to urgent."*
 > *"Create a card: 'A11y audit of settings page', assign to Sam, due September 4th."*
 

@@ -52,12 +52,15 @@ export async function registerAllTools(): Promise<number> {
     {
       name: "summarize_board",
       description:
-        "Get an overview of the board: card counts per column, workload per assignee, priority breakdown, and overdue cards. Call this first to understand the board.",
+        "Get an overview of the board: card counts per column, workload per assignee, priority breakdown, overdue cards, and cards due in the next 7 days. Call this first to understand the board.",
       inputSchema: z.object({}),
       annotations: { readOnlyHint: true, idempotentHint: true },
       execute: () => {
         const summary = useBoard.getState().summarizeBoard();
-        return { summary: `${summary.total} cards across ${summary.columns.length} columns. ${summary.overdue.length} overdue.`, ...summary };
+        return {
+          summary: `${summary.total} cards across ${summary.columns.length} columns. ${summary.overdue.length} overdue, ${summary.dueSoon.length} due in the next 7 days.`,
+          ...summary,
+        };
       },
     },
     {
