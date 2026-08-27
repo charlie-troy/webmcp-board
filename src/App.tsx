@@ -4,6 +4,7 @@ import { ActivityPanel } from "./components/ActivityPanel";
 import { initWebMCP, getWebMCPStatus } from "./webmcp/modelContext";
 import { useWebMCPStatus } from "./webmcp/statusStore";
 import { registerAllTools } from "./webmcp/tools";
+import { useBoard } from "./state/store";
 
 export default function App() {
   useEffect(() => {
@@ -30,13 +31,25 @@ export default function App() {
       </a>
       <header className="app-header">
         <div className="logo">🖐️ Agent Hands Task Board</div>
-        <div className="header-stats">Every drag-and-drop has an agent equivalent</div>
+        <BoardPulse />
         <McpBadge />
       </header>
       <div className="workspace">
         <Board />
         <ActivityPanel />
       </div>
+    </div>
+  );
+}
+
+function BoardPulse() {
+  const total = useBoard((s) => s.board.columns.reduce((sum, column) => sum + column.cards.length, 0));
+  const dueSoon = useBoard((s) => s.summarizeBoard().dueSoon.length);
+  const overdue = useBoard((s) => s.summarizeBoard().overdue.length);
+
+  return (
+    <div className="header-stats" aria-label={`Hands optional. ${total} cards. ${dueSoon} due this week. ${overdue} overdue.`}>
+      Hands optional <span aria-hidden="true">·</span> {total} cards <span aria-hidden="true">·</span> {dueSoon} due this week <span aria-hidden="true">·</span> {overdue} overdue
     </div>
   );
 }

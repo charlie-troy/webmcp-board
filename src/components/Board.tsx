@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useBoard } from "../state/store";
 import { PRIORITIES, type Card, type Column } from "../state/boardStore";
 
@@ -8,7 +9,7 @@ const PRIORITY_COLORS: Record<string, string> = {
   low: "#68d391",
 };
 
-function BoardCard({ card, column }: { card: Card; column: Column }) {
+function BoardCard({ card, column, onHumanMove }: { card: Card; column: Column; onHumanMove: (title: string, column: string) => void }) {
   const moveCard = useBoard((s) => s.moveCard);
   const deleteCard = useBoard((s) => s.deleteCard);
   const setPriority = useBoard((s) => s.setPriority);
@@ -41,7 +42,9 @@ function BoardCard({ card, column }: { card: Card; column: Column }) {
             className="mini"
             aria-label={`Move ${card.title} to ${prevColumn.title}`}
             title={`← ${prevColumn.title}`}
-            onClick={() => moveCard(card.id, prevColumn.id, undefined)}
+            onClick={() => {
+              if (moveCard(card.id, prevColumn.id, undefined)) onHumanMove(card.title, prevColumn.title);
+            }}
           >
             ←
           </button>
@@ -51,7 +54,9 @@ function BoardCard({ card, column }: { card: Card; column: Column }) {
             className="mini"
             aria-label={`Move ${card.title} to ${nextColumn.title}`}
             title={`→ ${nextColumn.title}`}
-            onClick={() => moveCard(card.id, nextColumn.id, undefined)}
+            onClick={() => {
+              if (moveCard(card.id, nextColumn.id, undefined)) onHumanMove(card.title, nextColumn.title);
+            }}
           >
             →
           </button>
@@ -82,6 +87,7 @@ function BoardCard({ card, column }: { card: Card; column: Column }) {
 }
 
 export function Board() {
+  const [announcement, setAnnouncement] = useState("");
   const columns = useBoard((s) => s.board.columns);
   const createCard = useBoard((s) => s.createCard);
 
@@ -92,6 +98,7 @@ export function Board() {
 
   return (
     <main id="main-board" className="board" aria-label="Task board">
+      <div className="sr-only" aria-live="polite" aria-atomic="true">{announcement}</div>
       {columns.map((column) => (
         <section className="column" key={column.id} aria-label={`${column.title} column, ${column.cards.length} cards`}>
           <header className="column-header">
@@ -103,7 +110,12 @@ export function Board() {
           </header>
           <div className="column-cards">
             {column.cards.map((card) => (
-              <BoardCard key={card.id} card={card} column={column} />
+              <BoardCard
+                key={card.id}
+                card={card}
+                column={column}
+                onHumanMove={(title, destination) => setAnnouncement(`${title} moved to ${destination}.`)}
+              />
             ))}
             {column.cards.length === 0 && <div className="empty-column">No cards</div>}
           </div>

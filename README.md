@@ -22,6 +22,8 @@ interfaces. This app is that idea, productized:
 - The human interface remains primary and fully keyboard-operable: visible focus rings,
   skip link, ARIA labels on every control, and explicit arrow controls instead of
   drag-and-drop. The agent is an optional set of hands, not a replacement UI.
+- The header mirrors the same attention state the agent reads — total cards, due-this-week,
+  and overdue counts — so human and agent always share the same current picture.
 
 ## Tools
 
@@ -30,7 +32,7 @@ interfaces. This app is that idea, productized:
 | `summarize_board` | read | Counts per column, workload per assignee, overdue and due-soon cards |
 | `search_cards` | read | Keyword search across title/description/assignee |
 | `create_card` | action | With column, assignee, due date, priority |
-| `move_card` | action | Move between columns, optional 0-based position |
+| `move_card` | action | Move between columns, optional 0-based position; returns from/to and final position |
 | `edit_card` | action | Title and description |
 | `assign_card` | action | Assign / clear assignee |
 | `set_due_date` | action | YYYY-MM-DD, or empty to clear |

@@ -58,7 +58,7 @@ export async function registerAllTools(): Promise<number> {
       execute: () => {
         const summary = useBoard.getState().summarizeBoard();
         return {
-          summary: `${summary.total} cards across ${summary.columns.length} columns. ${summary.overdue.length} overdue, ${summary.dueSoon.length} due in the next 7 days.`,
+          summary: `${summary.total} cards across ${summary.columns.length} columns. ${summary.overdue.length} overdue, ${summary.dueSoon.length} due by ${summary.dueSoonThrough}.`,
           ...summary,
         };
       },
@@ -125,11 +125,24 @@ export async function registerAllTools(): Promise<number> {
       execute: (input: { card_id?: string; card_title?: string; column: string; position?: number }) => {
         const found = resolveCard(input);
         if (!found) return { summary: "Card not found — use search_cards to get ids.", ok: false };
+        const targetBefore = useBoard.getState().board.columns.find(
+          (column) => column.id === input.column || column.title.toLowerCase() === input.column.toLowerCase(),
+        );
+        if (!targetBefore) return { summary: `Column "${input.column}" not found.`, ok: false };
+        const fromColumn = found.column.title;
         const ok = useBoard.getState().moveCard(found.card.id, input.column, input.position, "agent");
-        const column = useBoard.getState().resolveColumn(input.column);
-        return ok
-          ? { summary: `Moved "${found.card.title}" to ${column.title}.`, ok: true }
-          : { summary: `Column "${input.column}" not found.`, ok: false };
+        if (!ok) return { summary: `Could not move "${found.card.title}".`, ok: false };
+        const boardAfter = useBoard.getState().board;
+        const targetAfter = boardAfter.columns.find((column) => column.id === targetBefore.id) ?? targetBefore;
+        const position = targetAfter.cards.findIndex((card) => card.id === found.card.id);
+        return {
+          summary: `Moved "${found.card.title}" from ${fromColumn} to ${targetAfter.title}.`,
+          ok: true,
+          card_id: found.card.id,
+          from_column: fromColumn,
+          to_column: targetAfter.title,
+          position,
+        };
       },
     },
     {
@@ -147,7 +160,9 @@ export async function registerAllTools(): Promise<number> {
           { title: input.title, description: input.description },
           "agent",
         );
-        return ok ? { summary: `Updated "${found.card.title}".`, ok: true } : { summary: "Nothing to update.", ok: false };
+        return ok
+          ? { summary: `Updated "${found.card.title}".`, ok: true, card_id: found.card.id }
+          : { summary: "Nothing to update.", ok: false };
       },
     },
     {
@@ -159,7 +174,7 @@ export async function registerAllTools(): Promise<number> {
         if (!found) return { summary: "Card not found.", ok: false };
         const ok = useBoard.getState().assignCard(found.card.id, input.assignee, "agent");
         return ok
-          ? { summary: `"${found.card.title}" assigned to ${input.assignee || "nobody"}.`, ok: true }
+          ? { summary: `"${found.card.title}" assigned to ${input.assignee || "nobody"}.`, ok: true, card_id: found.card.id, assignee: input.assignee }
           : { summary: "Card not found.", ok: false };
       },
     },
@@ -174,7 +189,7 @@ export async function registerAllTools(): Promise<number> {
         if (!found) return { summary: "Card not found.", ok: false };
         const ok = useBoard.getState().setDueDate(found.card.id, input.due_date, "agent");
         return ok
-          ? { summary: `Due date of "${found.card.title}" set to ${input.due_date || "(none)"}.`, ok: true }
+          ? { summary: `Due date of "${found.card.title}" set to ${input.due_date || "(none)"}.`, ok: true, card_id: found.card.id, due_date: input.due_date }
           : { summary: "Invalid date format — use YYYY-MM-DD.", ok: false };
       },
     },
@@ -186,7 +201,9 @@ export async function registerAllTools(): Promise<number> {
         const found = resolveCard(input);
         if (!found) return { summary: "Card not found.", ok: false };
         const ok = useBoard.getState().setPriority(found.card.id, input.priority, "agent");
-        return ok ? { summary: `"${found.card.title}" priority is now ${input.priority}.`, ok: true } : { summary: "Card not found.", ok: false };
+        return ok
+          ? { summary: `"${found.card.title}" priority is now ${input.priority}.`, ok: true, card_id: found.card.id, priority: input.priority }
+          : { summary: "Card not found.", ok: false };
       },
     },
     {
@@ -198,7 +215,7 @@ export async function registerAllTools(): Promise<number> {
         const found = resolveCard(input);
         if (!found) return { summary: "Card not found.", ok: false };
         const ok = useBoard.getState().deleteCard(found.card.id, "agent");
-        return ok ? { summary: `Deleted "${found.card.title}".`, ok: true } : { summary: "Card not found.", ok: false };
+        return ok ? { summary: `Deleted "${found.card.title}".`, ok: true, card_id: found.card.id } : { summary: "Card not found.", ok: false };
       },
     },
     {

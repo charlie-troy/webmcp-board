@@ -18,8 +18,8 @@ Captions on. Record each section in one continuous take; the cut points are the 
 ## Shot-by-shot
 
 ### 0:00–0:15 — Hook
-**Visual:** Board with the demo data (Backlog / To Do / In Progress / Done), focus ring on a card.
-**VO:** "A Kanban board is a wall of drag-and-drop. For someone with limited hand mobility, every single move is a wall. This board gives every physical interaction an agent equivalent — so you just say what you want done."
+**Visual:** Board with the demo data (Backlog / To Do / In Progress / Done), the header pulse visible, focus ring on a card.
+**VO:** "A Kanban board is a wall of drag-and-drop. For someone with limited hand mobility, every single move is a wall. This board makes the hands optional: say what you want done, and keep the same visible, keyboard-operable board."
 
 ### 0:15–0:40 — The problem
 **Visual:** Quick clip of an agent *without* WebMCP trying to drag a card — mouse cursor grabbing, missing the target, menus mis-clicked. ~10s, then cut.
@@ -32,7 +32,7 @@ Captions on. Record each section in one continuous take; the cut points are the 
 **VO:** "Ask what needs attention and it reads the real state — columns, assignees, priorities, overdue work, and what's due next. Not pixels. Data."
 **Prompt 2:** `Move "Ship dark mode toggle" to In Progress and make it urgent.`
 **Tool calls:** `move_card` → `set_priority(urgent)` (column re-sorts by priority).
-**VO:** "'Move the dark mode toggle to In Progress and make it urgent.' The card glides over, the column re-sorts by priority — exactly what a human drag would do, in one sentence."
+**VO:** "'Move the dark mode toggle to In Progress and make it urgent.' The card glides over, the column re-sorts by priority, and the tool reports its source and destination — exactly what a human drag would do, in one sentence."
 **Prompt 3:** `Create a card: "A11y audit of settings page", assign to Sam, due September 4th.`
 **Tool call:** `create_card` (title + assignee + due date in one call).
 **VO:** "Even multi-field forms collapse into one instruction. And every action is announced in the Agent Activity panel — it's a live region, so a screen reader announces each change too. Sighted and blind users always know what the agent just did."
@@ -40,7 +40,7 @@ Captions on. Record each section in one continuous take; the cut points are the 
 ### 1:45–2:20 — Co-use
 **Visual:** Human uses the **arrow buttons** (keyboard-only) to move a card between columns — show the focus ring — then types `Undo the last change.`
 **Tool call:** `undo_last_agent_action`.
-**VO:** "The human interface stays fully keyboard-operable — arrow buttons instead of drag-and-drop, a skip link, visible focus rings. And the agent is never beyond undo: one call reverts its last change."
+**VO:** "The human interface stays fully keyboard-operable — arrow buttons instead of drag-and-drop, a skip link, visible focus rings, and a live announcement when a human moves a card. And the agent is never beyond undo: one call reverts its last change."
 
 ### 2:20–2:40 — Close
 **Visual:** Full board, Activity panel full of entries.

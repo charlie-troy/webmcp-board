@@ -46,6 +46,8 @@ interface BoardState {
   deleteCard: (cardId: string, source?: Source) => boolean;
   searchCards: (query: string) => Array<{ card: Card; column: string }>;
   summarizeBoard: () => {
+    asOf: string;
+    dueSoonThrough: string;
     total: number;
     columns: Array<{ id: string; title: string; count: number }>;
     byAssignee: Record<string, number>;
@@ -237,6 +239,8 @@ export const useBoard = create<BoardState>((set, get) => {
       overdue.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
       dueSoon.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
       return {
+        asOf: today,
+        dueSoonThrough,
         total,
         columns: board.columns.map((c) => ({ id: c.id, title: c.title, count: c.cards.length })),
         byAssignee,
