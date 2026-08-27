@@ -34,6 +34,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  overflow: hidden;
 }
 
 /* Visible focus for keyboard users everywhere */
@@ -126,6 +127,8 @@ body {
   background: var(--border);
   flex: 1;
   min-height: 0;
+  overflow-x: hidden;
+  contain: paint;
 }
 
 .board-shell {
@@ -134,6 +137,7 @@ body {
   min-width: 0;
   min-height: 0;
   background: var(--bg);
+  overflow: hidden;
 }
 
 .attention-strip {
@@ -203,6 +207,7 @@ body {
   background: var(--bg);
   overflow-x: auto;
   min-height: 0;
+  min-width: 0;
   flex: 1;
 }
 
