@@ -21,9 +21,11 @@ interfaces. This app is that idea, productized:
   so screen-reader and sighted users alike always know what the agent just did.
 - The human interface remains primary and fully keyboard-operable: visible focus rings,
   skip link, ARIA labels on every control, and explicit arrow controls instead of
-  drag-and-drop. The agent is an optional set of hands, not a replacement UI.
+  drag-and-drop. Cards are focusable too: Tab to a card, then use Left/Right to move
+  it while focus follows the card. The agent is an optional set of hands, not a replacement UI.
 - The header mirrors the same attention state the agent reads — total cards, due-this-week,
-  and overdue counts — so human and agent always share the same current picture.
+  and overdue counts — while a focus queue names the cards that need attention, so human
+  and agent always share the same current picture.
 
 ## Tools
 
