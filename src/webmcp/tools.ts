@@ -9,14 +9,22 @@ import { z } from "zod";
 import { registerTool, type ToolDefinition } from "./modelContext";
 import { useBoard } from "../state/store";
 import { PRIORITIES, type Priority } from "../state/boardStore";
+import { isValidIsoDate } from "../state/date";
 
 const columnRef = z
   .string()
+  .trim()
+  .min(1)
   .describe("Column id or title: 'backlog', 'todo', 'in-progress', 'done' (case-insensitive).");
 
+const isoDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine(isValidIsoDate, "Use a real calendar date in YYYY-MM-DD format.");
+
 const cardRef = z.object({
-  card_id: z.string().optional().describe("Card id (preferred). Get ids from search_cards or summarize_board."),
-  card_title: z.string().optional().describe("Card title to match if the id is unknown (case-insensitive, must be unique)."),
+  card_id: z.string().trim().min(1).optional().describe("Card id (preferred). Get ids from search_cards or summarize_board."),
+  card_title: z.string().trim().min(1).optional().describe("Card title to match if the id is unknown (case-insensitive, must be unique)."),
 });
 
 interface FoundCard {
@@ -31,18 +39,23 @@ function resolveCard(input: { card_id?: string; card_title?: string }): FoundCar
       const card = column.cards.find((c) => c.id === input.card_id);
       if (card) return { card, column };
     }
+    // An explicit id is authoritative. Never fall back to a title and risk
+    // mutating a different card when an agent is holding stale state.
+    return null;
   }
   if (input.card_title) {
     const q = input.card_title.toLowerCase();
-    const matches: FoundCard[] = [];
+    const exact: FoundCard[] = [];
+    const partial: FoundCard[] = [];
     for (const column of board.columns) {
       for (const card of column.cards) {
-        if (card.title.toLowerCase() === q || card.title.toLowerCase().includes(q)) {
-          matches.push({ card, column });
-        }
+        const title = card.title.toLowerCase();
+        if (title === q) exact.push({ card, column });
+        else if (title.includes(q)) partial.push({ card, column });
       }
     }
-    if (matches.length === 1) return matches[0];
+    if (exact.length === 1) return exact[0];
+    if (exact.length === 0 && partial.length === 1) return partial[0];
   }
   return null;
 }
@@ -66,7 +79,7 @@ export async function registerAllTools(): Promise<number> {
     {
       name: "search_cards",
       description: "Search cards by keyword across title, description, and assignee. Returns matching cards with their ids and columns.",
-      inputSchema: z.object({ query: z.string().min(1) }),
+      inputSchema: z.object({ query: z.string().trim().min(1) }),
       annotations: { readOnlyHint: true, idempotentHint: true },
       execute: ({ query }: { query: string }) => {
         const results = useBoard.getState().searchCards(query);
@@ -87,11 +100,11 @@ export async function registerAllTools(): Promise<number> {
       name: "create_card",
       description: "Create a new card. Optionally set column, assignee, due date (YYYY-MM-DD), and priority.",
       inputSchema: z.object({
-        title: z.string().min(1).max(140),
+        title: z.string().trim().min(1).max(140),
         description: z.string().max(1000).optional(),
         column: columnRef.optional(),
-        assignee: z.string().max(60).optional(),
-        due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("Due date as YYYY-MM-DD, or omit."),
+        assignee: z.string().trim().max(60).optional(),
+        due_date: isoDate.optional().describe("Due date as YYYY-MM-DD, or omit."),
         priority: z.enum(["low", "medium", "high", "urgent"] as [Priority, ...Priority[]]).optional(),
       }),
       execute: (input: { title: string; description?: string; column?: string; assignee?: string; due_date?: string; priority?: Priority }) => {
@@ -149,7 +162,7 @@ export async function registerAllTools(): Promise<number> {
       name: "edit_card",
       description: "Edit a card's title and/or description.",
       inputSchema: cardRef.extend({
-        title: z.string().min(1).max(140).optional(),
+        title: z.string().trim().min(1).max(140).optional(),
         description: z.string().max(1000).optional(),
       }),
       execute: (input: { card_id?: string; card_title?: string; title?: string; description?: string }) => {
@@ -168,7 +181,7 @@ export async function registerAllTools(): Promise<number> {
     {
       name: "assign_card",
       description: "Assign a card to a person (or clear with an empty string).",
-      inputSchema: cardRef.extend({ assignee: z.string().max(60) }),
+      inputSchema: cardRef.extend({ assignee: z.string().trim().max(60) }),
       execute: (input: { card_id?: string; card_title?: string; assignee: string }) => {
         const found = resolveCard(input);
         if (!found) return { summary: "Card not found.", ok: false };
@@ -182,7 +195,7 @@ export async function registerAllTools(): Promise<number> {
       name: "set_due_date",
       description: "Set a card's due date (YYYY-MM-DD), or clear it with an empty string.",
       inputSchema: cardRef.extend({
-        due_date: z.string().regex(/^(\d{4}-\d{2}-\d{2})?$/).describe("YYYY-MM-DD, or empty string to clear."),
+        due_date: z.union([z.literal(""), isoDate]).describe("YYYY-MM-DD, or empty string to clear."),
       }),
       execute: (input: { card_id?: string; card_title?: string; due_date: string }) => {
         const found = resolveCard(input);
@@ -220,14 +233,21 @@ export async function registerAllTools(): Promise<number> {
     },
     {
       name: "undo_last_agent_action",
-      description: "Undo the most recent change made by an agent tool on this board.",
+      description:
+        "Undo the most recent change made by an agent tool. Refuses safely if a person changed the board afterward, so newer human work is never overwritten.",
       inputSchema: z.object({}),
       annotations: { destructiveHint: true },
       execute: () => {
         const undone = useBoard.getState().undoLastAgentAction();
-        return undone
-          ? { summary: `Undid: ${undone.label}.`, ok: true }
-          : { summary: "No agent action left to undo.", ok: false };
+        if (undone.ok) return { summary: `Undid: ${undone.label}.`, ok: true };
+        if (undone.reason === "newer_human_changes") {
+          return {
+            summary: "Undo blocked because a person changed the board afterward. Their newer work was preserved.",
+            ok: false,
+            reason: undone.reason,
+          };
+        }
+        return { summary: "No agent action left to undo.", ok: false, reason: undone.reason };
       },
     },
   ];

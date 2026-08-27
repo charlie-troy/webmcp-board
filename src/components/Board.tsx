@@ -9,7 +9,17 @@ const PRIORITY_COLORS: Record<string, string> = {
   low: "#68d391",
 };
 
-function BoardCard({ card, column, onHumanMove }: { card: Card; column: Column; onHumanMove: (title: string, column: string) => void }) {
+function BoardCard({
+  card,
+  column,
+  onHumanMove,
+  onHumanDelete,
+}: {
+  card: Card;
+  column: Column;
+  onHumanMove: (title: string, column: string) => void;
+  onHumanDelete: (title: string, column: string) => void;
+}) {
   const cardRef = useRef<HTMLElement>(null);
   const moveCard = useBoard((s) => s.moveCard);
   const deleteCard = useBoard((s) => s.deleteCard);
@@ -69,7 +79,7 @@ function BoardCard({ card, column, onHumanMove }: { card: Card; column: Column; 
             aria-label={`Move ${card.title} to ${prevColumn.title}`}
             title={`← ${prevColumn.title}`}
             onClick={() => {
-              moveTo(prevColumn);
+              moveTo(prevColumn, true);
             }}
           >
             ←
@@ -81,7 +91,7 @@ function BoardCard({ card, column, onHumanMove }: { card: Card; column: Column; 
             aria-label={`Move ${card.title} to ${nextColumn.title}`}
             title={`→ ${nextColumn.title}`}
             onClick={() => {
-              moveTo(nextColumn);
+              moveTo(nextColumn, true);
             }}
           >
             →
@@ -103,7 +113,18 @@ function BoardCard({ card, column, onHumanMove }: { card: Card; column: Column; 
           className="mini danger"
           aria-label={`Delete ${card.title}`}
           title="Delete card"
-          onClick={() => deleteCard(card.id)}
+          onClick={() => {
+            const cardIndex = column.cards.findIndex((candidate) => candidate.id === card.id);
+            const focusCardId = column.cards[cardIndex + 1]?.id ?? column.cards[cardIndex - 1]?.id;
+            if (!deleteCard(card.id)) return;
+            onHumanDelete(card.title, column.title);
+            window.setTimeout(() => {
+              const focusTarget = focusCardId
+                ? document.querySelector<HTMLElement>(`[data-card-id="${focusCardId}"]`)
+                : document.querySelector<HTMLElement>(`[data-column-id="${column.id}"] .mini.add`);
+              focusTarget?.focus();
+            }, 0);
+          }}
         >
           ✕
         </button>
@@ -119,7 +140,11 @@ export function Board() {
 
   const addCard = (columnId: string) => {
     const title = window.prompt("Card title");
-    if (title?.trim()) createCard({ title: title.trim(), columnId });
+    if (!title?.trim()) return;
+    const card = createCard({ title: title.trim(), columnId });
+    const columnTitle = useBoard.getState().board.columns.find((column) => column.id === columnId)?.title ?? columnId;
+    setAnnouncement(`${card.title} created in ${columnTitle}.`);
+    window.setTimeout(() => document.querySelector<HTMLElement>(`[data-card-id="${card.id}"]`)?.focus(), 0);
   };
 
   return (
@@ -128,7 +153,7 @@ export function Board() {
       <main id="main-board" className="board" aria-label="Task board">
         <div className="sr-only" aria-live="polite" aria-atomic="true">{announcement}</div>
         {columns.map((column) => (
-          <section className="column" key={column.id} aria-label={`${column.title} column, ${column.cards.length} cards`}>
+          <section className="column" data-column-id={column.id} key={column.id} aria-label={`${column.title} column, ${column.cards.length} cards`}>
             <header className="column-header">
               <h2>{column.title}</h2>
               <span className="count">{column.cards.length}</span>
@@ -143,6 +168,7 @@ export function Board() {
                   card={card}
                   column={column}
                   onHumanMove={(title, destination) => setAnnouncement(`${title} moved to ${destination}.`)}
+                  onHumanDelete={(title, source) => setAnnouncement(`${title} deleted from ${source}.`)}
                 />
               ))}
               {column.cards.length === 0 && <div className="empty-column">No cards</div>}

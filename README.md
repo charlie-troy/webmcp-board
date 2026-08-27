@@ -19,6 +19,8 @@ interfaces. This app is that idea, productized:
   schema-described tool — no DOM scraping, no simulated clicks.
 - Every tool call is logged in an on-page **Agent Activity** panel (`aria-live="polite"`),
   so screen-reader and sighted users alike always know what the agent just did.
+- Agent undo is human-safe: it restores the latest agent change, but refuses to roll
+  back the board if a person has made a newer change.
 - The human interface remains primary and fully keyboard-operable: visible focus rings,
   skip link, ARIA labels on every control, and explicit arrow controls instead of
   drag-and-drop. Cards are focusable too: Tab to a card, then use Left/Right to move
@@ -37,7 +39,7 @@ interfaces. This app is that idea, productized:
 | `move_card` | action | Move between columns, optional 0-based position; returns from/to and final position |
 | `edit_card` | action | Title and description |
 | `assign_card` | action | Assign / clear assignee |
-| `set_due_date` | action | YYYY-MM-DD, or empty to clear |
+| `set_due_date` | action | Real YYYY-MM-DD calendar date, or empty to clear |
 | `set_priority` | action | low / medium / high / urgent (auto-sorts column) |
 | `delete_card` ⚠ | destructive | Permanent removal |
 | `undo_last_agent_action` | destructive | Revert the last agent change |
@@ -54,9 +56,17 @@ Open the deployed site in ChatGPT's desktop browser (GPT-5.6 Sol/Terra) or Chrom
 ## Architecture
 
 - `src/state/store.ts` — Zustand board store; humans and tools mutate through the same
-  actions, and every changed action snapshots for `undo_last_agent_action`.
+  actions, every changed action is snapshotted, and undo will not overwrite newer human work.
 - `src/webmcp/` — feature detection + official polyfill fallback + logging wrapper;
   Zod schemas compiled to JSON Schema.
+
+## Verification
+
+The release gate covers every tool and the exact README journey in native WebMCP and
+polyfill modes, Axe accessibility scans before and after heavy mutation, keyboard-only
+create/move/delete flows, hostile and boundary inputs, concurrent calls, deterministic
+mutation fuzzing, local-day date behavior, eight responsive viewports, and parallel
+cold reloads in Chrome and Edge.
 
 ## Run locally
 

@@ -38,9 +38,9 @@ Captions on. Record each section in one continuous take; the cut points are the 
 **VO:** "Even multi-field forms collapse into one instruction. And every action is announced in the Agent Activity panel — it's a live region, so a screen reader announces each change too. Sighted and blind users always know what the agent just did."
 
 ### 1:45–2:20 — Co-use
-**Visual:** Human tabs to a card, uses **Left/Right** (keyboard-only) to move it between columns — show the focus ring staying with the card and the Focus queue updating — then types `Undo the last change.`
+**Visual:** Immediately after the agent-created card appears, type `Undo the last agent change.` Show the card disappear. Then human tabs to a different card and uses **Left/Right** (keyboard-only) to move it between columns — show the focus ring staying with the card and the Focus queue updating.
 **Tool call:** `undo_last_agent_action`.
-**VO:** "The human interface stays fully keyboard-operable — arrow buttons and card shortcuts instead of drag-and-drop, a skip link, visible focus rings, and a live announcement when a human moves a card. The Focus queue keeps urgent attention visible, and the agent is never beyond undo: one call reverts its last change."
+**VO:** "The agent is never beyond undo: one call reverts its latest change, and it will never overwrite newer human work. The human interface stays fully keyboard-operable — arrow buttons and card shortcuts instead of drag-and-drop, a skip link, visible focus rings, and a live announcement when a person moves a card."
 
 ### 2:20–2:40 — Close
 **Visual:** Full board, Activity panel full of entries.

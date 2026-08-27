@@ -8,6 +8,7 @@ import {
   type Column,
   type Priority,
 } from "./boardStore";
+import { addDaysIso, isValidIsoDate, localDateIso } from "./date";
 
 export type Source = "human" | "agent";
 
@@ -16,6 +17,11 @@ interface HistoryEntry {
   source: Source;
   label: string;
 }
+
+export type UndoAgentResult =
+  | { ok: true; label: string }
+  | { ok: false; reason: "no_agent_action" }
+  | { ok: false; reason: "newer_human_changes"; label: string };
 
 export interface CardInput {
   title: string;
@@ -55,7 +61,7 @@ interface BoardState {
     overdue: Array<{ title: string; dueDate: string; column: string }>;
     dueSoon: Array<{ title: string; dueDate: string; column: string }>;
   };
-  undoLastAgentAction: () => { label: string } | null;
+  undoLastAgentAction: () => UndoAgentResult;
 }
 
 export const useBoard = create<BoardState>((set, get) => {
@@ -89,21 +95,27 @@ export const useBoard = create<BoardState>((set, get) => {
 
     resolveColumn: (columnId) => {
       const { board } = get();
-      return board.columns.find((c) => c.id === columnId || c.title.toLowerCase() === (columnId ?? "").toLowerCase()) ?? board.columns[0];
+      const normalized = columnId?.trim().toLowerCase() ?? "";
+      return board.columns.find((c) => c.id === normalized || c.title.toLowerCase() === normalized) ?? board.columns[0];
     },
 
     createCard: (input, source = "human") => {
       let created!: Card;
+      const title = input.title.trim().slice(0, 140);
+      if (!title) throw new Error("Card title cannot be blank.");
+      const dueDate = input.dueDate ?? "";
+      if (dueDate && !isValidIsoDate(dueDate)) throw new Error("Due date must be a real YYYY-MM-DD calendar date.");
       mutate(source, `create_card("${input.title}")`, (b) => {
+        const normalizedColumn = input.columnId?.trim().toLowerCase();
         const column = b.columns.find(
-          (c) => c.id === (input.columnId ?? c.id) || c.title.toLowerCase() === (input.columnId ?? "").toLowerCase(),
+          (c) => c.id === (normalizedColumn ?? c.id) || c.title.toLowerCase() === (normalizedColumn ?? ""),
         ) ?? b.columns[0];
         created = {
           id: uid("card"),
-          title: input.title.slice(0, 140),
+          title,
           description: (input.description ?? "").slice(0, 1000),
-          assignee: (input.assignee ?? "").slice(0, 60),
-          dueDate: input.dueDate ?? "",
+          assignee: (input.assignee ?? "").trim().slice(0, 60),
+          dueDate,
           priority: input.priority ?? "medium",
         };
         column.cards.push(created);
@@ -112,16 +124,28 @@ export const useBoard = create<BoardState>((set, get) => {
     },
 
     moveCard: (cardId, columnId, position, source = "human") => {
+      const board = get().board;
+      const foundBefore = findCard(board, cardId);
+      const normalizedColumn = columnId.trim().toLowerCase();
+      const targetBefore = board.columns.find(
+        (c) => c.id === normalizedColumn || c.title.toLowerCase() === normalizedColumn,
+      );
+      if (!foundBefore || !targetBefore) return false;
+      if (foundBefore.column.id === targetBefore.id) {
+        const maxPosition = Math.max(0, targetBefore.cards.length - 1);
+        const desiredPosition = position == null ? foundBefore.index : Math.max(0, Math.min(position, maxPosition));
+        if (desiredPosition === foundBefore.index) return true;
+      }
       let moved = false;
       mutate(source, `move_card(→ ${columnId})`, (b) => {
         const found = findCard(b, cardId);
         if (!found) return;
         const target = b.columns.find(
-          (c) => c.id === columnId || c.title.toLowerCase() === columnId.toLowerCase(),
+          (c) => c.id === normalizedColumn || c.title.toLowerCase() === normalizedColumn,
         );
         if (!target) return;
         found.column.cards.splice(found.index, 1);
-        const pos = position == null || position < 0 || position > target.cards.length ? target.cards.length : position;
+        const pos = position == null ? target.cards.length : Math.max(0, Math.min(position, target.cards.length));
         target.cards.splice(pos, 0, found.card);
         moved = true;
       });
@@ -135,7 +159,11 @@ export const useBoard = create<BoardState>((set, get) => {
         const found = findCard(b, cardId);
         if (!found) return;
         if (patch.title == null && patch.description == null) return;
-        if (patch.title != null) found.card.title = patch.title.slice(0, 140);
+        if (patch.title != null) {
+          const title = patch.title.trim().slice(0, 140);
+          if (!title) return;
+          found.card.title = title;
+        }
         if (patch.description != null) found.card.description = patch.description.slice(0, 1000);
         ok = true;
       });
@@ -147,7 +175,7 @@ export const useBoard = create<BoardState>((set, get) => {
       mutate(source, `assign_card(→ ${assignee})`, (b) => {
         const found = findCard(b, cardId);
         if (!found) return;
-        found.card.assignee = assignee.slice(0, 60);
+        found.card.assignee = assignee.trim().slice(0, 60);
         ok = true;
       });
       return ok;
@@ -155,7 +183,7 @@ export const useBoard = create<BoardState>((set, get) => {
 
     setDueDate: (cardId, dueDate, source = "human") => {
       let ok = false;
-      if (dueDate !== "" && !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) return false;
+      if (dueDate !== "" && !isValidIsoDate(dueDate)) return false;
       mutate(source, `set_due_date(${dueDate || "cleared"})`, (b) => {
         const found = findCard(b, cardId);
         if (!found) return;
@@ -191,7 +219,7 @@ export const useBoard = create<BoardState>((set, get) => {
 
     searchCards: (query) => {
       const { board } = get();
-      const q = query.toLowerCase();
+      const q = query.trim().toLowerCase();
       const results: Array<{ card: Card; column: string }> = [];
       for (const column of board.columns) {
         for (const card of column.cards) {
@@ -213,10 +241,8 @@ export const useBoard = create<BoardState>((set, get) => {
       const byPriority: Record<string, number> = {};
       const overdue: Array<{ title: string; dueDate: string; column: string }> = [];
       const dueSoon: Array<{ title: string; dueDate: string; column: string }> = [];
-      const today = new Date().toISOString().slice(0, 10);
-      const sevenDaysFromNow = new Date(`${today}T00:00:00Z`);
-      sevenDaysFromNow.setUTCDate(sevenDaysFromNow.getUTCDate() + 7);
-      const dueSoonThrough = sevenDaysFromNow.toISOString().slice(0, 10);
+      const today = localDateIso();
+      const dueSoonThrough = addDaysIso(today, 7);
       let total = 0;
       for (const column of board.columns) {
         for (const card of column.cards) {
@@ -255,10 +281,13 @@ export const useBoard = create<BoardState>((set, get) => {
       for (let i = history.length - 1; i >= 0; i--) {
         const entry = history[i];
         if (entry.source !== "agent") continue;
+        if (history.slice(i + 1).some((newer) => newer.source === "human")) {
+          return { ok: false, reason: "newer_human_changes", label: entry.label };
+        }
         set({ board: entry.snapshot, history: history.slice(0, i), lastMovedCardId: null });
-        return { label: entry.label };
+        return { ok: true, label: entry.label };
       }
-      return null;
+      return { ok: false, reason: "no_agent_action" };
     },
   };
 });

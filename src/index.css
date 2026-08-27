@@ -277,11 +277,9 @@ body {
 @keyframes slide-in {
   0% {
     transform: translateX(-8px);
-    opacity: 0.3;
   }
   100% {
     transform: translateX(0);
-    opacity: 1;
   }
 }
 .card-top {
@@ -387,7 +385,7 @@ body {
   font-weight: 400;
   text-transform: none;
   letter-spacing: 0;
-  opacity: 0.7;
+  color: #bdc7d8;
 }
 .clear-btn {
   background: transparent;
@@ -422,11 +420,9 @@ body {
 @keyframes pop-in {
   from {
     transform: scale(0.96);
-    opacity: 0;
   }
   to {
     transform: scale(1);
-    opacity: 1;
   }
 }
 .entry-head {
@@ -455,7 +451,7 @@ body {
 .entry-time {
   margin-left: auto;
   font-size: 10px;
-  color: var(--text-dim);
+  color: #bdc7d8;
 }
 .entry-result {
   font-size: 11px;
@@ -464,4 +460,15 @@ body {
 }
 .activity-entry.error .entry-result {
   color: var(--red);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

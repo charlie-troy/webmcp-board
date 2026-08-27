@@ -25,7 +25,7 @@ export function ActivityPanel() {
           ✕
         </button>
       </div>
-      <div className="activity-list">
+      <div className="activity-list" tabIndex={0} aria-label="Agent activity entries">
         {entries.length === 0 && (
           <div className="activity-empty">
             No agent calls yet.

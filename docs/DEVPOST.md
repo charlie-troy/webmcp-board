@@ -16,12 +16,12 @@ A Kanban board is a wall of drag-and-drop — a wall for users with motor impair
 ## Why WebMCP (the before/after)
 The WebMCP standard explicitly names *improving accessibility through agents* as a goal: agents as capable intermediaries between assistive technology and human-first interfaces. This app is that idea, productized. Scraping agents can't reliably drag cards or fill forms blind; WebMCP gives them schema-described tools that map 1:1 to the human UI — same board, same data, same undo history.
 
-**What became possible that wasn't before:** a motor-impaired user delegating the physical manipulation (drag, form-fill) to their agent while keeping complete visibility and control — including `undo_last_agent_action` — over the same board their team sees.
+**What became possible that wasn't before:** a motor-impaired user delegating the physical manipulation (drag, form-fill) to their agent while keeping complete visibility and control — including `undo_last_agent_action` — over the same board their team sees. Undo is deliberately human-safe: if a person changed the board after the agent, it refuses to overwrite that newer work.
 
 ## Judging fit
 
 - **WebMCP Leverage:** tools map to the board's actual operations and return structured card ids, columns, dates, priorities, and explicit failures for unknown cards or columns.
-- **Execution:** the seeded board is useful on first load; the human UI remains keyboard-operable with visible focus, card-level Left/Right shortcuts, arrow controls, a focus queue, an activity live region, and the same Zustand actions underneath.
+- **Execution:** the seeded board is useful on first load; the human UI remains keyboard-operable with visible focus, card-level Left/Right shortcuts, arrow controls, a focus queue, an activity live region, strict calendar-date validation, and conflict-safe undo over the same Zustand actions. The release gate covers every tool, native and polyfill modes, Axe before and after heavy mutation, deterministic fuzzing, concurrent calls, eight viewport sizes, and parallel reloads in Chrome and Edge.
 - **Potential Impact:** an agent can become an optional set of hands for users who cannot reliably drag cards or complete dense forms, without taking control away from the user.
 - **Creativity & Ambition:** accessibility is the product thesis, not a checklist — the board treats agent mediation as an assistive capability with visibility and undo.
 
