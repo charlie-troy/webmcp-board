@@ -51,7 +51,15 @@ export async function callTool(page: Page, name: string, input: Record<string, u
 }
 
 export async function seriousAxeViolations(page: Page) {
-  await page.addScriptTag({ content: axeSource });
+  const alreadyLoaded = await page.evaluate(() => "axe" in window);
+  if (!alreadyLoaded) {
+    await page.route("**/__axe-test.js", (route) => route.fulfill({
+      status: 200,
+      contentType: "text/javascript",
+      body: axeSource,
+    }));
+    await page.addScriptTag({ url: `${new URL(page.url()).origin}/__axe-test.js` });
+  }
   return page.evaluate(async () => {
     const axe = (window as unknown as {
       axe: { run: () => Promise<{ violations: Array<{
