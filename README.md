@@ -24,7 +24,9 @@ interfaces. This app is that idea, productized:
 - The human interface remains primary and fully keyboard-operable: visible focus rings,
   skip link, ARIA labels on every control, and explicit arrow controls instead of
   drag-and-drop. Cards are focusable too: Tab to a card, then use Left/Right to move
-  it while focus follows the card. The agent is an optional set of hands, not a replacement UI.
+  it while focus follows the card. A real modal editor exposes title, description,
+  assignee, due date, and priority without a mouse; destructive human deletion requires
+  confirmation. The agent is an optional set of hands, not a replacement UI.
 - The header mirrors the same attention state the agent reads — total cards, due-this-week,
   and overdue counts — while a focus queue names the cards that need attention, so human
   and agent always share the same current picture.
@@ -62,11 +64,23 @@ Open the deployed site in ChatGPT's desktop browser (GPT-5.6 Sol/Terra) or Chrom
 
 ## Verification
 
-The release gate covers every tool and the exact README journey in native WebMCP and
-polyfill modes, Axe accessibility scans before and after heavy mutation, keyboard-only
-create/move/delete flows, hostile and boundary inputs, concurrent calls, deterministic
-mutation fuzzing, local-day date behavior, eight responsive viewports, and parallel
-cold reloads in Chrome and Edge.
+The release gate is checked into this repository. It covers the exact README journey;
+complete keyboard-only create/edit/move/delete flows; stale human/agent dialog races;
+safe undo conflicts; Axe scans; forced colors, reduced motion, and 200% reflow; offline
+use after load; delayed resources; 100 editor cycles; 25 cold reloads; and a 5,000-call,
+105-card deterministic WebMCP soak. The human and WebMCP journeys run in Chromium,
+Firefox, and WebKit. Lighthouse scores 100 for performance, accessibility, best
+practices, SEO, and agentic browsing on the production build.
+
+```bash
+npm install
+npx playwright install chromium firefox webkit
+npm run test:release
+```
+
+The longer stress gate is intentionally not a toy smoke test: on the reference Windows
+machine, 5,000 schema-validated, rendered, activity-logged mutations complete in about
+3.8 minutes.
 
 ## Run locally
 

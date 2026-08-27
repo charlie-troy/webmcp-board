@@ -46,6 +46,7 @@ interface BoardState {
     patch: { title?: string; description?: string },
     source?: Source,
   ) => boolean;
+  updateCard: (cardId: string, patch: Partial<Omit<Card, "id">>, source?: Source) => boolean;
   assignCard: (cardId: string, assignee: string, source?: Source) => boolean;
   setDueDate: (cardId: string, dueDate: string, source?: Source) => boolean;
   setPriority: (cardId: string, priority: Priority, source?: Source) => boolean;
@@ -67,7 +68,10 @@ interface BoardState {
 export const useBoard = create<BoardState>((set, get) => {
   function mutate(source: Source, label: string, fn: (board: Board) => void) {
     set((s) => {
-      const before = structuredClone(s.board);
+      // Board objects are replaced, never mutated in place, so the current
+      // immutable value is already a safe history snapshot. Avoid cloning the
+      // entire board twice for every action; this matters under agent bursts.
+      const before = s.board;
       const draft = structuredClone(s.board);
       fn(draft);
       // Invalid and idempotent requests should not become misleading undo
@@ -165,6 +169,28 @@ export const useBoard = create<BoardState>((set, get) => {
           found.card.title = title;
         }
         if (patch.description != null) found.card.description = patch.description.slice(0, 1000);
+        ok = true;
+      });
+      return ok;
+    },
+
+    updateCard: (cardId, patch, source = "human") => {
+      const title = patch.title?.trim().slice(0, 140);
+      if (patch.title != null && !title) return false;
+      if (patch.dueDate != null && patch.dueDate !== "" && !isValidIsoDate(patch.dueDate)) return false;
+
+      let ok = false;
+      mutate(source, "update_card()", (b) => {
+        const found = findCard(b, cardId);
+        if (!found) return;
+        if (patch.title != null) found.card.title = title!;
+        if (patch.description != null) found.card.description = patch.description.slice(0, 1000);
+        if (patch.assignee != null) found.card.assignee = patch.assignee.trim().slice(0, 60);
+        if (patch.dueDate != null) found.card.dueDate = patch.dueDate;
+        if (patch.priority != null) {
+          found.card.priority = patch.priority;
+          found.column.cards.sort((a, z) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[z.priority]);
+        }
         ok = true;
       });
       return ok;

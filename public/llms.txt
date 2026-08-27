@@ -1,0 +1,15 @@
+# Agent Hands Task Board
+
+Agent Hands is an accessibility-first Kanban board built for the OpenAI WebMCP Challenge. People keep a complete keyboard-operable interface while agents use ten schema-described WebMCP tools against the same live board state.
+
+## Key links
+
+- [Live application](https://webmcp-board.vercel.app/)
+- [Source code and complete documentation](https://github.com/charlie-troy/webmcp-board)
+- [OpenAI WebMCP Challenge](https://openai.com/webmcp-challenge/)
+
+## Agent capabilities
+
+The page registers tools to summarize and search the board; create, move, edit, assign, prioritize, date, and delete cards; and safely undo the latest agent action. Prefer `summarize_board` before mutating unfamiliar state. Prefer moving completed work to Done instead of deleting it.
+
+Human changes take precedence: `undo_last_agent_action` refuses to restore an older snapshot when a person made a newer board change.

@@ -349,6 +349,211 @@ body {
   margin-left: auto;
 }
 
+/* ---------- card editor ---------- */
+.card-dialog {
+  width: min(520px, calc(100vw - 28px));
+  max-height: calc(100vh - 28px);
+  padding: 0;
+  overflow: auto;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid #465269;
+  border-radius: 12px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.58);
+}
+.card-dialog::backdrop {
+  background: rgba(5, 8, 13, 0.78);
+  backdrop-filter: blur(3px);
+}
+.card-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px;
+}
+.dialog-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.dialog-kicker {
+  color: var(--accent);
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.card-dialog h2 {
+  margin: 3px 0 0;
+  color: #fff;
+  font-size: 21px;
+  line-height: 1.2;
+}
+.dialog-close {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--text-dim);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 24px;
+  line-height: 1;
+}
+.dialog-close:hover {
+  color: var(--text);
+  border-color: var(--border);
+}
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+}
+.form-field small {
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 400;
+}
+.form-field input,
+.form-field textarea,
+.form-field select {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 11px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid #465269;
+  border-radius: 7px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 400;
+}
+.form-field textarea {
+  min-height: 96px;
+  resize: vertical;
+  line-height: 1.45;
+}
+.form-field input::placeholder {
+  color: #7e8aa0;
+}
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.form-error {
+  margin: -10px 0 0;
+  color: var(--red);
+  font-size: 12px;
+}
+.dialog-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin: 0 -2px -2px;
+  padding: 12px 2px 2px;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+}
+.button {
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+}
+.button.secondary {
+  color: var(--text);
+  background: var(--panel-2);
+  border-color: #465269;
+}
+.button.primary {
+  color: #071411;
+  background: var(--accent);
+}
+.button.destructive {
+  color: #240707;
+  background: var(--red);
+}
+.button:hover {
+  filter: brightness(1.08);
+}
+.confirm-dialog {
+  width: min(430px, calc(100vw - 28px));
+}
+.confirm-dialog p {
+  margin: 0;
+  color: var(--text-dim);
+  line-height: 1.55;
+}
+.confirm-dialog strong {
+  color: var(--text);
+}
+
+@media (max-width: 520px) {
+  .card-form {
+    gap: 14px;
+    padding: 18px;
+  }
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (forced-colors: active) {
+  .card-dialog,
+  .card-form,
+  .card-dialog h2,
+  .card-dialog p,
+  .card-dialog strong,
+  .form-field,
+  .form-field small {
+    color: CanvasText;
+    background: Canvas;
+  }
+  .dialog-kicker {
+    color: LinkText;
+  }
+  .form-field input,
+  .form-field textarea,
+  .form-field select {
+    color: FieldText;
+    background: Field;
+    border-color: ButtonBorder;
+  }
+  .button,
+  .button.secondary,
+  .button.primary,
+  .button.destructive,
+  .dialog-close {
+    color: ButtonText;
+    background: ButtonFace;
+    border-color: ButtonBorder;
+  }
+  .form-error {
+    color: Mark;
+  }
+  .priority-dot,
+  .entry-status-dot {
+    border: 1px solid CanvasText;
+  }
+  .card.just-moved {
+    outline: 2px solid Highlight;
+  }
+}
+
 /* ---------- activity panel ---------- */
 .activity-panel {
   background: var(--panel);
