@@ -62,6 +62,9 @@ export const useBoard = create<BoardState>((set, get) => {
       const before = structuredClone(s.board);
       const draft = structuredClone(s.board);
       fn(draft);
+      // Invalid and idempotent requests should not become misleading undo
+      // points. Undo must always target the last real board change.
+      if (JSON.stringify(before) === JSON.stringify(draft)) return s;
       return {
         board: draft,
         history: [...s.history, { snapshot: before, source, label }].slice(-100),
@@ -129,6 +132,7 @@ export const useBoard = create<BoardState>((set, get) => {
       mutate(source, `edit_card()`, (b) => {
         const found = findCard(b, cardId);
         if (!found) return;
+        if (patch.title == null && patch.description == null) return;
         if (patch.title != null) found.card.title = patch.title.slice(0, 140);
         if (patch.description != null) found.card.description = patch.description.slice(0, 1000);
         ok = true;

@@ -2,7 +2,7 @@
 
 An accessibility-first Kanban board built on **WebMCP**, designed for the reality that
 many interactions on the web — drag-and-drop above all — are physically impossible or
-painful for users with motor impairments. Here, **every drag-and-drop and form
+painful for users with motor impairments. Here, **every physical manipulation and form
 interaction a human can do has an equivalent agent tool**, so a motor-impaired user can
 say *"move the checkout fix to Done and mark it urgent"* and watch it happen on the
 shared page.
@@ -20,7 +20,8 @@ interfaces. This app is that idea, productized:
 - Every tool call is logged in an on-page **Agent Activity** panel (`aria-live="polite"`),
   so screen-reader and sighted users alike always know what the agent just did.
 - The human interface remains primary and fully keyboard-operable: visible focus rings,
-  skip link, ARIA labels on every control, and arrow buttons that replace drag-and-drop.
+  skip link, ARIA labels on every control, and explicit arrow controls instead of
+  drag-and-drop. The agent is an optional set of hands, not a replacement UI.
 
 ## Tools
 
@@ -49,7 +50,7 @@ Open the deployed site in ChatGPT's desktop browser (GPT-5.6 Sol/Terra) or Chrom
 ## Architecture
 
 - `src/state/store.ts` — Zustand board store; humans and tools mutate through the same
-  actions, and every mutation snapshots for `undo_last_agent_action`.
+  actions, and every changed action snapshots for `undo_last_agent_action`.
 - `src/webmcp/` — feature detection + official polyfill fallback + logging wrapper;
   Zod schemas compiled to JSON Schema.
 

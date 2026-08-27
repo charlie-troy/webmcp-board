@@ -18,6 +18,13 @@ The WebMCP standard explicitly names *improving accessibility through agents* as
 
 **What became possible that wasn't before:** a motor-impaired user delegating the physical manipulation (drag, form-fill) to their agent while keeping complete visibility and control — including `undo_last_agent_action` — over the same board their team sees.
 
+## Judging fit
+
+- **WebMCP Leverage:** tools map to the board's actual operations and return structured card ids, columns, dates, priorities, and explicit failures for unknown cards or columns.
+- **Execution:** the seeded board is useful on first load; the human UI remains keyboard-operable with visible focus, arrow controls, an activity live region, and the same Zustand actions underneath.
+- **Potential Impact:** an agent can become an optional set of hands for users who cannot reliably drag cards or complete dense forms, without taking control away from the user.
+- **Creativity & Ambition:** accessibility is the product thesis, not a checklist — the board treats agent mediation as an assistive capability with visibility and undo.
+
 ## How it works / demo flow
 1. Open the site in ChatGPT's desktop browser (or Chrome with the WebMCP flag).
 2. *"What's on the board? Anything overdue or due this week?"* → `summarize_board` reads real state (columns, assignees, priorities, overdue cards, and the next seven days of due dates).

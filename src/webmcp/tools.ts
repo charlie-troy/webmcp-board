@@ -1,7 +1,7 @@
 /**
  * Agent Hands Task Board — WebMCP tool catalog.
  *
- * Every drag-and-drop and form interaction a human can perform has an
+ * Every physical manipulation and form interaction a human can perform has an
  * equivalent tool, so motor-impaired users can delegate the physical
  * manipulation to their agent while keeping full visibility and control.
  */
@@ -95,6 +95,11 @@ export async function registerAllTools(): Promise<number> {
         priority: z.enum(["low", "medium", "high", "urgent"] as [Priority, ...Priority[]]).optional(),
       }),
       execute: (input: { title: string; description?: string; column?: string; assignee?: string; due_date?: string; priority?: Priority }) => {
+        const board = useBoard.getState().board;
+        const column = input.column
+          ? board.columns.find((c) => c.id === input.column || c.title.toLowerCase() === input.column?.toLowerCase())
+          : board.columns[0];
+        if (!column) return { summary: `Column "${input.column}" not found.`, ok: false };
         const card = useBoard.getState().createCard(
           {
             title: input.title,
@@ -102,11 +107,10 @@ export async function registerAllTools(): Promise<number> {
             assignee: input.assignee,
             dueDate: input.due_date,
             priority: input.priority,
-            columnId: input.column,
+            columnId: column.id,
           },
           "agent",
         );
-        const column = useBoard.getState().resolveColumn(input.column);
         return { summary: `Created "${card.title}" in ${column.title}.`, ok: true, card_id: card.id };
       },
     },
