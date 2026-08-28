@@ -1,5 +1,5 @@
 /**
- * Agent Hands Task Board — WebMCP tool catalog.
+ * Agent Hands Focus Relay — WebMCP tool catalog.
  *
  * Every physical manipulation and form interaction a human can perform has an
  * equivalent tool, so motor-impaired users can delegate the physical
@@ -26,6 +26,20 @@ const cardRef = z.object({
   card_id: z.string().trim().min(1).optional().describe("Card id (preferred). Get ids from search_cards or summarize_board."),
   card_title: z.string().trim().min(1).optional().describe("Card title to match if the id is unknown (case-insensitive, must be unique)."),
 });
+
+const currentCardUpdate = z
+  .object({
+    title: z.string().trim().min(1).max(140).optional(),
+    description: z.string().max(1000).optional(),
+    assignee: z.string().trim().max(60).optional().describe("New assignee, or an empty string to clear."),
+    due_date: z.union([z.literal(""), isoDate]).optional().describe("YYYY-MM-DD, or empty string to clear."),
+    priority: z.enum(["low", "medium", "high", "urgent"] as [Priority, ...Priority[]]).optional(),
+    column: columnRef.optional(),
+    position: z.number().int().min(0).optional().describe("Optional 0-based position; priority sorting takes precedence."),
+  })
+  .refine((input) => Object.values(input).some((value) => value !== undefined), {
+    message: "Provide at least one card change.",
+  });
 
 interface FoundCard {
   card: import("../state/boardStore").Card;
@@ -58,6 +72,14 @@ function resolveCard(input: { card_id?: string; card_title?: string }): FoundCar
     if (exact.length === 0 && partial.length === 1) return partial[0];
   }
   return null;
+}
+
+function resolveAgentTarget(): FoundCard | null {
+  const targetId = useBoard.getState().agentTargetCardId;
+  if (!targetId) return null;
+  const target = resolveCard({ card_id: targetId });
+  if (!target) useBoard.getState().setAgentTarget(null);
+  return target;
 }
 
 export async function registerAllTools(): Promise<number> {
@@ -97,6 +119,91 @@ export async function registerAllTools(): Promise<number> {
       },
     },
     {
+      name: "get_current_card",
+      description:
+        "Read the card the human most recently focused in Focus Relay. Use this when the user says 'this card', 'current card', or 'selected card'. The target persists while the user moves focus to agent chat.",
+      inputSchema: z.object({}),
+      annotations: { readOnlyHint: true, idempotentHint: true },
+      execute: () => {
+        const found = resolveAgentTarget();
+        if (!found) {
+          return {
+            summary: "No Focus Relay target. Ask the user to focus a card on the board, then try again.",
+            ok: false,
+            reason: "no_target",
+          };
+        }
+        return {
+          summary: `The human's current target is "${found.card.title}" in ${found.column.title}.`,
+          ok: true,
+          card_id: found.card.id,
+          title: found.card.title,
+          description: found.card.description,
+          assignee: found.card.assignee,
+          due_date: found.card.dueDate,
+          priority: found.card.priority,
+          column: found.column.title,
+          position: found.column.cards.findIndex((card) => card.id === found.card.id),
+        };
+      },
+    },
+    {
+      name: "update_current_card",
+      description:
+        "Atomically update the card the human focused in Focus Relay. Prefer this single tool whenever the user says 'this/current/selected card' or requests multiple changes. Move, assign, prioritize, date, and edit in one reversible intent so one Undo restores the entire instruction.",
+      inputSchema: currentCardUpdate,
+      execute: (input: {
+        title?: string;
+        description?: string;
+        assignee?: string;
+        due_date?: string;
+        priority?: Priority;
+        column?: string;
+        position?: number;
+      }) => {
+        const found = resolveAgentTarget();
+        if (!found) {
+          return {
+            summary: "No Focus Relay target. Ask the user to focus a card on the board, then try again.",
+            ok: false,
+            reason: "no_target",
+          };
+        }
+        const result = useBoard.getState().applyCardIntent(
+          found.card.id,
+          {
+            title: input.title,
+            description: input.description,
+            assignee: input.assignee,
+            dueDate: input.due_date,
+            priority: input.priority,
+            columnId: input.column,
+            position: input.position,
+          },
+          "agent",
+        );
+        if (!result.ok) {
+          const summaries = {
+            card_not_found: "The Focus Relay target is no longer on the board.",
+            column_not_found: `Column "${input.column}" not found.`,
+            invalid_title: "Card title cannot be blank.",
+            invalid_date: "Due date must be a real YYYY-MM-DD calendar date.",
+            no_changes: `No changes were needed for "${found.card.title}".`,
+          } as const;
+          return { summary: summaries[result.reason], ok: false, reason: result.reason };
+        }
+        return {
+          summary: `Updated "${result.title}" as one reversible intent. One Undo restores all ${result.changes.length} changes.`,
+          ok: true,
+          card_id: result.cardId,
+          column: result.column,
+          position: result.position,
+          changes: result.changes,
+          undo_scope: "entire_intent",
+        };
+      },
+    },
+    {
       name: "create_card",
       description: "Create a new card. Optionally set column, assignee, due date (YYYY-MM-DD), and priority.",
       inputSchema: z.object({
@@ -130,7 +237,7 @@ export async function registerAllTools(): Promise<number> {
     {
       name: "move_card",
       description:
-        "Move a card to another column (e.g. from 'todo' to 'in-progress'). Optionally place it at a specific 0-based position in that column.",
+        "Move one named card to another column. For 'this/current card' or requests that change multiple fields, prefer update_current_card so the whole instruction is one reversible intent.",
       inputSchema: cardRef.extend({
         column: columnRef,
         position: z.number().int().min(0).optional().describe("0-based position in the destination column; defaults to the end."),
@@ -208,7 +315,7 @@ export async function registerAllTools(): Promise<number> {
     },
     {
       name: "set_priority",
-      description: "Set a card's priority. Cards are kept sorted by priority within each column.",
+      description: "Set one named card's priority. For 'this/current card' or multi-field requests, prefer update_current_card. Cards are sorted by priority within each column.",
       inputSchema: cardRef.extend({ priority: z.enum(["low", "medium", "high", "urgent"] as [Priority, ...Priority[]]) }),
       execute: (input: { card_id?: string; card_title?: string; priority: Priority }) => {
         const found = resolveCard(input);

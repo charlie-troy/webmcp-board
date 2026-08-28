@@ -1,57 +1,118 @@
-# Devpost Submission Draft — Agent Hands Task Board
+# Devpost Submission Draft — Agent Hands: Focus Relay
 
-> Copy/paste into the WebMCP Challenge submission form. Replace the `[PLACEHOLDER]`
-> links after deploying and uploading the video. (The full write-up also lives in
-> this repo's README.)
+> Copy/paste into the WebMCP Challenge submission form. Replace the video placeholder.
 
 ## Project title
-**Agent Hands Task Board** — the board where the hands are optional
 
-## Tagline (one line)
-An accessibility-first Kanban board where the hands are optional: say what to move, and keep the same visible, keyboard-operable board.
+**Agent Hands: Focus Relay**
 
-## Elevator pitch (short description)
-A Kanban board is a wall of drag-and-drop — a wall for users with motor impairments. Agent Hands gives **every physical interaction an agent equivalent**: all 10 card operations (move, edit, assign, re-prioritize, delete, due dates) are registered WebMCP tools, so a user can say *"move the checkout fix to Done and mark it urgent"* and watch it happen on the shared page. The human interface stays primary and fully keyboard-operable: arrow controls and focus-retaining Left/Right shortcuts replace dragging, while a native modal editor exposes every card field and human deletion requires confirmation. Every agent action is logged in an `aria-live` Agent Activity panel so screen-reader and sighted users alike always know what the agent just did. That same panel now exposes a human **Undo** control and the exact three prompts that demonstrate the product, making safety and the judge journey visible before the first call. The header mirrors the board's due-soon and overdue counts, and a visible focus queue names the cards that need attention before anyone acts.
+## Tagline
 
-## Why WebMCP (the before/after)
-The WebMCP standard explicitly names *improving accessibility through agents* as a goal: agents as capable intermediaries between assistive technology and human-first interfaces. This app is that idea, productized. Scraping agents can't reliably drag cards or fill forms blind; WebMCP gives them schema-described tools that map 1:1 to the human UI — same board, same data, same undo history.
+Point with focus. Act with language. Undo the entire intent.
 
-**What became possible that wasn't before:** a motor-impaired user delegating the physical manipulation (drag, form-fill) to their agent while keeping complete visibility and control — through either `undo_last_agent_action` or the visible **Undo** button — over the same board their team sees. Undo is deliberately human-safe: if a person changed the board after the agent, it refuses to overwrite that newer work.
+## Elevator pitch
+
+A person may be able to reach an object with a keyboard, switch, eye-gaze system, screen
+reader, or pointer—but still find dragging, repeated tabbing, and dense forms painful or
+impossible. Focus Relay separates indication from manipulation. Focus a card; ask the
+browser agent to update “this”; WebMCP reads the shared page context and applies the whole
+instruction as one atomic, reversible operation.
+
+The Kanban board is a deliberately familiar reference workspace. The novel interaction is
+the handoff: human focus establishes context, WebMCP supplies the hands, and an equivalent
+visual and auditory before/after receipt preserves control.
+
+## What became possible with WebMCP
+
+Tab to **Ship dark mode toggle**, move focus to ChatGPT, and say:
+
+> “Move this to In Progress, assign Sam, make it urgent, due September 2nd.”
+
+The target survives the move to agent chat. `get_current_card` resolves “this” from the
+human's last deliberate focus. `update_current_card` validates and changes four fields in
+one call, one activity receipt, and one history entry. One Undo restores the entire
+instruction. If the human edits the board afterward, rollback refuses to overwrite that
+newer work.
+
+A backend API can update a card by id. It does not naturally know which object the person
+just reached inside the live browser. Focus Relay is built around precisely that ephemeral,
+human-established page context—the reason this belongs in WebMCP rather than a generic
+chatbot integration.
 
 ## Judging fit
 
-- **WebMCP Leverage:** tools map to the board's actual operations and return structured card ids, columns, dates, priorities, and explicit failures for unknown cards or columns.
-- **Execution:** the seeded board is useful on first load; the human UI remains keyboard-operable with visible focus, card-level Left/Right shortcuts, a full card editor, confirmed deletion, a focus queue, an activity live region, strict calendar-date validation, and conflict-safe undo over the same Zustand actions. The checked-in release gate covers the exact demo journey across Chromium, Firefox, and WebKit; Axe; forced colors; reduced motion; 200% reflow; offline and delayed-network behavior; human/agent races; reloads; and a 5,000-mutation soak. The production build scores 100 in all five Lighthouse categories, including agentic browsing.
-- **Potential Impact:** an agent can become an optional set of hands for users who cannot reliably drag cards or complete dense forms, without taking control away from the user.
-- **Creativity & Ambition:** accessibility is the product thesis, not a checklist — the board treats agent mediation as an assistive capability with visibility and undo.
+- **WebMCP Leverage:** 12 structured tools operate on the visible page's real state. Two
+  contextual tools turn transient human focus into structured agent context and an atomic
+  intent. Named-card parity tools remain available for ordinary and bulk workflows.
+- **Execution:** the target is persistent, id-based, visibly highlighted, screen-reader
+  announced, and safely cleared when stale. Compound updates validate before mutation,
+  return structured before/after fields, and create exactly one undo point. The primary UI
+  remains fully keyboard-operable.
+- **Potential Impact:** the pattern transfers to selected spreadsheet ranges, design
+  objects, timeline clips, CRM records, calendar events, map features, and form sections—
+  anywhere a person can indicate an object but needs help manipulating it.
+- **Creativity & Ambition:** this is not “AI added to a task board.” It is a reference
+  interaction pattern for accessible shared control between a human, a page, and a browser
+  agent.
 
-## How it works / demo flow
-1. Open the site in ChatGPT's desktop browser (or Chrome with the WebMCP flag).
-2. *"What's on the board? Anything overdue or due this week?"* → `summarize_board` reads real state (columns, assignees, priorities, overdue cards, and the next seven days of due dates).
-3. *"Move 'Ship dark mode toggle' to In Progress and make it urgent."* → `move_card` + `set_priority`; the tool returns the source/destination and final position while the column re-sorts live.
-4. *"Create a card: 'A11y audit of settings page', assign to Sam, due September 4th."* → one `create_card` call.
-5. Open the same card editor with the keyboard to show full human parity, then press **Escape**; focus returns to the originating card.
-6. Tab to a card and press **Left/Right** to move it without a drag; the focused card stays focused and the live announcement confirms the destination.
-7. Press the visible **Undo** button (or ask *"Undo the last change."*) → the same conflict-safe `undo_last_agent_action` behavior.
+## Human control and safety
+
+- The page visibly names the current agent target.
+- Every tool call appears in a polite ARIA activity log.
+- Atomic operations produce semantic before/after receipts.
+- The visible Undo button and `undo_last_agent_action` share the same safe history.
+- Undo never crosses newer human work.
+- Missing or deleted targets fail explicitly; tools never guess another card.
+- Invalid dates, titles, columns, and schemas produce no partial mutation.
+- Human deletion requires confirmation; destructive tools are annotated.
+
+## Demo flow
+
+1. Open the live app in ChatGPT's browser.
+2. Use **Tab**—not the mouse—to focus **Ship dark mode toggle**. Show the card highlight and
+   Focus Relay banner naming it as the agent target.
+3. Ask the four-field prompt above.
+4. Show the single `update_current_card` call, live board mutation, and four before/after
+   receipt rows.
+5. Press **Undo** once. Show all four fields restored.
+6. Repeat the intent, make a newer keyboard edit elsewhere, and show rollback refuse to
+   overwrite the person's work.
+7. Briefly show the full keyboard editor and Left/Right card movement to establish that the
+   agent augments rather than replaces the human interface.
 
 ## Tools
-`summarize_board` · `search_cards` · `create_card` · `move_card` · `edit_card` · `assign_card` · `set_due_date` · `set_priority` · `delete_card` ⚠ · `undo_last_agent_action` ⚠
 
-(⚠ = annotated `destructiveHint`.)
+`summarize_board` · `search_cards` · `get_current_card` · `update_current_card` ·
+`create_card` · `move_card` · `edit_card` · `assign_card` · `set_due_date` ·
+`set_priority` · `delete_card` ⚠ · `undo_last_agent_action` ⚠
+
+## Verification
+
+The public release gate runs the Focus Relay journey in Chromium, Firefox, and WebKit;
+complete keyboard flows; target lifecycle and stale-state cases; human/agent races; Axe;
+forced colors; reduced motion; 200% reflow; offline and delayed loading; 100 editor cycles;
+25 cold registrations; and a deterministic 5,000-call, 105-card soak.
 
 ## Tech stack
-Vite + React + TypeScript · Zustand (state) · Zod → JSON Schema (tool schemas) · official `@mcp-b/webmcp-polyfill` fallback · `document.modelContext` / `navigator.modelContext` feature detection · ARIA/WCAG-first markup
+
+Vite + React + TypeScript · Zustand · Zod → JSON Schema · native
+`document.modelContext` with official polyfill fallback · Playwright · Axe
 
 ## Links
+
 - **GitHub:** https://github.com/charlie-troy/webmcp-board
 - **Live demo:** https://webmcp-board.vercel.app
-- **Video:** [YOUTUBE_URL_PLACEHOLDER] (script: `docs/VIDEO_SCRIPT.md`)
+- **Pattern document:** `docs/FOCUS_RELAY_PATTERN.md`
+- **Video:** [YOUTUBE_URL_PLACEHOLDER]
 
 ## Team
+
 Charlie Troy — solo
 
 ## Tags
-webmcp, ai-agents, accessibility, a11y, kanban, productivity
+
+webmcp, accessibility, assistive-technology, human-agent-collaboration, focus-relay
 
 ## License
-MIT (in-repo)
+
+MIT

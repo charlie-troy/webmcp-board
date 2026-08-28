@@ -1,88 +1,106 @@
-# 🖐️ Agent Hands Task Board
+# 🖐️ Agent Hands — Focus Relay
 
-An accessibility-first Kanban board built on **WebMCP**, designed for the reality that
-many interactions on the web — drag-and-drop above all — are physically impossible or
-painful for users with motor impairments. Here, **every physical manipulation and form
-interaction a human can do has an equivalent agent tool**, so a motor-impaired user can
-say *"move the checkout fix to Done and mark it urgent"* and watch it happen on the
-shared page.
+**Point with focus. Act with language. Undo the entire intent.**
+
+Agent Hands is an accessibility-first human-agent control pattern built on
+**WebMCP**. A person navigates to an object with whatever input works for them—keyboard,
+switch control, eye gaze, pointer, or another assistive device. The page remembers that
+object as shared context. The person can then ask their browser agent to act on “this”
+without reproducing its title or manipulating a dense interface.
+
+The Kanban board is a deliberately familiar reference workspace. The invention is the
+handoff: **human focus establishes context; WebMCP supplies the manipulation; an
+accessible receipt and intent-level Undo preserve control.**
 
 Built for the [OpenAI WebMCP Challenge](https://openai.com/webmcp-challenge/).
 
-## Why WebMCP fits this app
+## The Focus Relay interaction
 
-The WebMCP standard explicitly names "improve accessibility through agents" as a goal:
-agents act as capable intermediaries between assistive technology and human-first
-interfaces. This app is that idea, productized:
+1. Tab to **Ship dark mode toggle**. The page visibly marks it as the agent target.
+2. Move focus to ChatGPT and ask:
 
-- Every card action (move, edit, assign, re-prioritize, delete) is a registered,
-  schema-described tool — no DOM scraping, no simulated clicks.
-- Every tool call is logged in an on-page **Agent Activity** panel (`aria-live="polite"`),
-  so screen-reader and sighted users alike always know what the agent just did.
-- Agent undo is human-safe and visible: users can ask the agent or press **Undo** in the
-  activity panel. It restores the latest agent change, but refuses to roll back the board
-  if a person has made a newer change.
-- The human interface remains primary and fully keyboard-operable: visible focus rings,
-  skip link, ARIA labels on every control, and explicit arrow controls instead of
-  drag-and-drop. Cards are focusable too: Tab to a card, then use Left/Right to move
-  it while focus follows the card. A real modal editor exposes title, description,
-  assignee, due date, and priority without a mouse; destructive human deletion requires
-  confirmation. The agent is an optional set of hands, not a replacement UI.
-- The header mirrors the same attention state the agent reads — total cards, due-this-week,
-  and overdue counts — while a focus queue names the cards that need attention, so human
-  and agent always share the same current picture.
+   > *“Move this to In Progress, assign Sam, make it urgent, due September 2nd.”*
 
-## Tools
+3. `update_current_card` applies all four changes as one atomic WebMCP operation.
+4. The page displays and announces a semantic before/after receipt.
+5. Ask *“Undo that entire change”* or press the visible **Undo** button. All four
+   changes revert together.
+
+The target persists while focus moves from the page to agent chat. If the target is
+deleted, it clears safely. If a person changes the board after the agent, Undo refuses
+to overwrite that newer human work.
+
+## Why this requires in-page WebMCP
+
+A backend task API can update a card by id. It does not naturally know which object a
+person just reached through the live browser interface. Focus Relay uses ephemeral page
+state—the human's last deliberately focused card—as agent context without scraping the
+DOM, copying text, or replicating browser state on a server.
+
+This implements the WebMCP goals of human-in-the-loop workflows, shared context,
+visibility, history, control, and accessibility through an agent intermediary while
+keeping the human interface primary.
+
+## Accessibility and control
+
+- Every human card operation has a schema-described WebMCP equivalent.
+- `get_current_card` resolves “this/current/selected card” from human focus.
+- `update_current_card` combines move, edit, assignment, priority, and due date into
+  one validated transaction and one undo point.
+- Before/after receipts are visible and exposed through a polite ARIA activity log.
+- Cards remain fully keyboard-operable with visible focus and focus-retaining Left/Right
+  movement; the complete editor requires no mouse.
+- Human deletion requires confirmation. Agent undo never crosses newer human work.
+- Strict date validation, authoritative card ids, stale-target handling, and bounded
+  history prevent ambiguous or unsafe mutations.
+
+The reusable pattern is documented in
+[`docs/FOCUS_RELAY_PATTERN.md`](docs/FOCUS_RELAY_PATTERN.md).
+
+## WebMCP tools
 
 | Tool | Kind | Description |
 |---|---|---|
-| `summarize_board` | read | Counts per column, workload per assignee, overdue and due-soon cards |
-| `search_cards` | read | Keyword search across title/description/assignee |
-| `create_card` | action | With column, assignee, due date, priority |
-| `move_card` | action | Move between columns, optional 0-based position; returns from/to and final position |
-| `edit_card` | action | Title and description |
-| `assign_card` | action | Assign / clear assignee |
-| `set_due_date` | action | Real YYYY-MM-DD calendar date, or empty to clear |
-| `set_priority` | action | low / medium / high / urgent (auto-sorts column) |
-| `delete_card` ⚠ | destructive | Permanent removal |
-| `undo_last_agent_action` | destructive | Revert the last agent change |
+| `summarize_board` | read | Counts, workload, priorities, overdue and due-soon work |
+| `search_cards` | read | Search title, description, and assignee |
+| `get_current_card` | read | Read the human's persistent Focus Relay target |
+| `update_current_card` | action | Atomically update every field on the target as one reversible intent |
+| `create_card` | action | Create with column, assignee, due date, and priority |
+| `move_card` | action | Move a named card, with optional position |
+| `edit_card` | action | Edit title and description |
+| `assign_card` | action | Assign or clear assignee |
+| `set_due_date` | action | Set a real YYYY-MM-DD date or clear it |
+| `set_priority` | action | Set low, medium, high, or urgent |
+| `delete_card` ⚠ | destructive | Permanently remove a named card |
+| `undo_last_agent_action` ⚠ | destructive | Revert one agent intent without overwriting newer human work |
 
-## Try it with an agent
-
-Open the deployed site in ChatGPT's desktop browser (GPT-5.6 Sol/Terra) or Chrome with
-`chrome://flags/#enable-webmcp-testing` enabled. The activity panel displays this same
-three-step judge journey, so the demo is self-guided:
-
-> *"What's on the board? Anything overdue or due this week?"*
-> *"Move 'Ship dark mode toggle' to In Progress and set it to urgent."*
-> *"Create a card: 'A11y audit of settings page', assign to Sam, due September 4th."*
+Named-card tools remain available for parity and bulk workflows. Agents should prefer
+`update_current_card` when the user refers to “this” or asks for multiple changes.
 
 ## Architecture
 
-- `src/state/store.ts` — Zustand board store; humans and tools mutate through the same
-  actions, every changed action is snapshotted, and undo will not overwrite newer human work.
-- `src/webmcp/` — feature detection + official polyfill fallback + logging wrapper;
-  Zod schemas compiled to JSON Schema.
+- `src/state/store.ts` owns board state, persistent human targeting, atomic intent
+  mutation, bounded history, and conflict-safe undo.
+- `src/webmcp/tools.ts` defines 12 validated WebMCP tools and structured receipts.
+- `src/components/Board.tsx` turns ordinary focus events into visible shared context.
+- `src/components/ActivityPanel.tsx` renders the tool log and semantic change receipts.
+- `src/webmcp/modelContext.ts` feature-detects native WebMCP, falls back to the official
+  polyfill, validates inputs, and guarantees on-page logging.
 
 ## Verification
 
-The release gate is checked into this repository. It covers the exact README journey;
-complete keyboard-only create/edit/move/delete flows; stale human/agent dialog races;
-safe undo conflicts; Axe scans; forced colors, reduced motion, and 200% reflow; offline
-use after load; delayed resources; 100 editor cycles; 25 cold reloads; and a 5,000-call,
-105-card deterministic WebMCP soak. The human and WebMCP journeys run in Chromium,
-Firefox, and WebKit. Lighthouse scores 100 for performance, accessibility, best
-practices, SEO, and agentic browsing on the production build.
+The checked-in release gate covers the exact Focus Relay journey; atomic multi-field
+updates and one-step undo; target changes, deletion, and stale context; complete
+keyboard-only create/edit/move/delete flows; human/agent races; Axe scans; forced
+colors; reduced motion; 200% reflow; offline use; delayed resources; 100 editor cycles;
+25 cold reloads with exactly 12 tools; and a deterministic 5,000-call, 105-card soak.
+The human and WebMCP journeys run in Chromium, Firefox, and WebKit.
 
 ```bash
 npm install
 npx playwright install chromium firefox webkit
 npm run test:release
 ```
-
-The longer stress gate is intentionally not a toy smoke test: on the reference Windows
-machine, 5,000 schema-validated, rendered, activity-logged mutations complete in about
-3.8 minutes.
 
 ## Run locally
 

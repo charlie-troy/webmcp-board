@@ -54,7 +54,7 @@ test("25 cold reloads register exactly one copy of all tools", async ({ page }) 
     await page.reload({ waitUntil: "networkidle" });
     await page.waitForFunction(() => {
       const context = (window as unknown as { __testModelContext?: { registrations: Map<string, unknown> } }).__testModelContext;
-      return context?.registrations.size === 10;
+      return context?.registrations.size === 12;
     });
   }
 
@@ -62,6 +62,6 @@ test("25 cold reloads register exactly one copy of all tools", async ({ page }) 
     const context = (window as unknown as { __testModelContext: { registrations: Map<string, unknown> } }).__testModelContext;
     return [...context.registrations.keys()];
   });
-  expect(new Set(names).size).toBe(10);
+  expect(new Set(names).size).toBe(12);
   expect(errors).toEqual([]);
 });

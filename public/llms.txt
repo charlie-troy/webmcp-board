@@ -1,6 +1,6 @@
-# Agent Hands Task Board
+# Agent Hands — Focus Relay
 
-Agent Hands is an accessibility-first Kanban board built for the OpenAI WebMCP Challenge. People keep a complete keyboard-operable interface while agents use ten schema-described WebMCP tools against the same live board state.
+Agent Hands is a reference implementation of Focus Relay: a human focuses an object with keyboard, switch, eye-gaze, or pointer input; WebMCP reads that shared page context and performs the difficult manipulation as one atomic, reversible intent. A keyboard-operable Kanban workspace makes the handoff immediately visible.
 
 ## Key links
 
@@ -10,6 +10,6 @@ Agent Hands is an accessibility-first Kanban board built for the OpenAI WebMCP C
 
 ## Agent capabilities
 
-The page registers tools to summarize and search the board; create, move, edit, assign, prioritize, date, and delete cards; and safely undo the latest agent action. Prefer `summarize_board` before mutating unfamiliar state. Prefer moving completed work to Done instead of deleting it.
+The page registers 12 tools. `get_current_card` reads the human's Focus Relay target. `update_current_card` atomically moves, edits, assigns, prioritizes, and dates that target in one call; prefer it when the user says "this", "current", or requests multiple changes. The remaining tools summarize and search the board; create, move, edit, assign, prioritize, date, and delete named cards; and safely undo agent work.
 
-Human changes take precedence: `undo_last_agent_action` refuses to restore an older snapshot when a person made a newer board change.
+One `update_current_card` call creates one history entry, so one Undo restores the complete human instruction. Human changes take precedence: undo refuses to restore an older snapshot when a person made a newer board change.

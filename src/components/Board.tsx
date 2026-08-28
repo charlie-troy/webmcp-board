@@ -27,7 +27,9 @@ function BoardCard({
   const cardRef = useRef<HTMLElement>(null);
   const moveCard = useBoard((s) => s.moveCard);
   const setPriority = useBoard((s) => s.setPriority);
+  const setAgentTarget = useBoard((s) => s.setAgentTarget);
   const lastMoved = useBoard((s) => s.lastMovedCardId === card.id);
+  const isAgentTarget = useBoard((s) => s.agentTargetCardId === card.id);
   const colIdx = useBoard.getState().board.columns.findIndex((c) => c.id === column.id);
   const columns = useBoard((s) => s.board.columns);
 
@@ -49,11 +51,14 @@ function BoardCard({
     <article
       ref={cardRef}
       data-card-id={card.id}
-      className={`card ${lastMoved ? "just-moved" : ""}`}
+      data-agent-target={isAgentTarget ? "true" : undefined}
+      className={`card ${lastMoved ? "just-moved" : ""} ${isAgentTarget ? "agent-target" : ""}`}
       aria-label={`Card: ${card.title}. Priority ${card.priority}.${card.assignee ? ` Assigned to ${card.assignee}.` : ""}${card.dueDate ? ` Due ${card.dueDate}.` : ""}`}
       aria-describedby={`card-help-${card.id}`}
+      aria-current={isAgentTarget ? "true" : undefined}
       aria-keyshortcuts="ArrowLeft ArrowRight"
       tabIndex={0}
+      onFocus={() => setAgentTarget(card.id)}
       onKeyDown={(event) => {
         // Let buttons and the priority select keep their native arrow-key behavior.
         if (event.currentTarget !== event.target) return;
@@ -63,7 +68,7 @@ function BoardCard({
         moveTo(target, true);
       }}
     >
-      <span id={`card-help-${card.id}`} className="sr-only">Focused card: press Left or Right to move it between columns.</span>
+      <span id={`card-help-${card.id}`} className="sr-only">Press Left or Right to move this card between columns.</span>
       <div className="card-top">
         <span className="priority-dot" style={{ background: PRIORITY_COLORS[card.priority] }} aria-hidden="true" />
         <h3 className="card-title">{card.title}</h3>
@@ -348,6 +353,7 @@ export function Board() {
 
   return (
     <div className="board-shell">
+      <FocusRelayStrip />
       <AttentionStrip />
       <main id="main-board" className="board" aria-label="Task board">
         <div className="sr-only" aria-live="polite" aria-atomic="true">{announcement}</div>
@@ -406,6 +412,37 @@ export function Board() {
         />
       )}
     </div>
+  );
+}
+
+function FocusRelayStrip() {
+  const targetId = useBoard((s) => s.agentTargetCardId);
+  const columns = useBoard((s) => s.board.columns);
+  const setAgentTarget = useBoard((s) => s.setAgentTarget);
+  const target = targetId
+    ? columns.flatMap((column) => column.cards.map((card) => ({ card, column }))).find(({ card }) => card.id === targetId)
+    : undefined;
+
+  return (
+    <section className={`relay-strip ${target ? "relay-active" : ""}`} aria-label="Focus Relay human-agent handoff">
+      <div className="relay-brand">
+        <span className="relay-pulse" aria-hidden="true" />
+        <span>Focus Relay</span>
+      </div>
+      <div className="relay-target" aria-live="polite" aria-atomic="true">
+        <span className="relay-label">{target ? "Agent target" : "Waiting for human focus"}</span>
+        <strong>{target ? target.card.title : "Focus any card to hand it to the agent"}</strong>
+        {target && <span className="relay-meta">{target.column.title} · {target.card.priority} priority</span>}
+      </div>
+      <div className="relay-flow" aria-hidden="true">
+        <span>Human focus</span><b>→</b><span>WebMCP intent</span><b>→</b><span>Receipt</span>
+      </div>
+      {target && (
+        <button className="relay-clear" onClick={() => setAgentTarget(null)} aria-label={`Clear agent target ${target.card.title}`}>
+          Clear target
+        </button>
+      )}
+    </section>
   );
 }
 

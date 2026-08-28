@@ -31,7 +31,7 @@ export async function openBoard(page: Page): Promise<string[]> {
   await page.locator(".mcp-badge").waitFor();
   await page.waitForFunction(() => {
     const context = (window as unknown as { __testModelContext?: { registrations: Map<string, unknown> } }).__testModelContext;
-    return context?.registrations.size === 10;
+    return context?.registrations.size === 12;
   });
   return errors;
 }

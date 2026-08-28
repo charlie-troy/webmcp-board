@@ -30,7 +30,10 @@ export default function App() {
         Skip to board
       </a>
       <header className="app-header">
-        <div className="logo">🖐️ Agent Hands Task Board</div>
+        <div className="identity">
+          <div className="logo">🖐️ Agent Hands</div>
+          <div className="tagline">Point with focus. Act with language.</div>
+        </div>
         <BoardPulse />
         <McpBadge />
       </header>
@@ -48,8 +51,8 @@ function BoardPulse() {
   const overdue = useBoard((s) => s.summarizeBoard().overdue.length);
 
   return (
-    <div className="header-stats" aria-label={`Hands optional. ${total} cards. ${dueSoon} due this week. ${overdue} overdue.`}>
-      Hands optional <span aria-hidden="true">·</span> {total} cards <span aria-hidden="true">·</span> {dueSoon} due this week <span aria-hidden="true">·</span> {overdue} overdue
+    <div className="header-stats" aria-label={`Focus Relay workspace. ${total} cards. ${dueSoon} due this week. ${overdue} overdue.`}>
+      Focus Relay workspace <span aria-hidden="true">·</span> {total} cards <span aria-hidden="true">·</span> {dueSoon} due this week <span aria-hidden="true">·</span> {overdue} overdue
     </div>
   );
 }

@@ -132,7 +132,13 @@ export async function registerTool(def: ToolDefinition): Promise<boolean> {
           try {
             const parsed = def.inputSchema.parse(rawInput ?? {});
             const result = await def.execute(parsed);
-            logToolCall({ id, tool: def.name, args: rawInput, status: "success", result });
+            logToolCall({
+              id,
+              tool: def.name,
+              args: rawInput,
+              status: result.ok === false ? "error" : "success",
+              result,
+            });
             return result;
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err);

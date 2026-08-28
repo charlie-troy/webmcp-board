@@ -56,28 +56,53 @@ test("human can create, cancel, edit, and safely delete a complete card", async 
   expect(errors).toEqual([]);
 });
 
-test("README journey works through registered WebMCP tools", async ({ page }) => {
+test("Focus Relay turns human focus into one atomic, reversible WebMCP intent", async ({ page }) => {
   const errors = await openBoard(page);
   const summary = await callTool(page, "summarize_board") as { total: number; overdue: unknown[]; dueSoon: unknown[] };
   expect(summary.total).toBe(5);
   expect(Array.isArray(summary.overdue)).toBeTruthy();
   expect(Array.isArray(summary.dueSoon)).toBeTruthy();
 
-  const moved = await callTool(page, "move_card", { card_title: "Ship dark mode toggle", column: "In Progress" }) as { ok: boolean };
-  const prioritized = await callTool(page, "set_priority", { card_title: "Ship dark mode toggle", priority: "urgent" }) as { ok: boolean };
-  const created = await callTool(page, "create_card", {
-    title: "A11y audit of settings page",
-    assignee: "Sam",
-    due_date: "2026-09-04",
-  }) as { ok: boolean; card_id: string };
+  const noTarget = await callTool(page, "get_current_card") as { ok: boolean; reason: string };
+  expect(noTarget).toMatchObject({ ok: false, reason: "no_target" });
 
-  expect(moved.ok).toBeTruthy();
-  expect(prioritized.ok).toBeTruthy();
-  expect(created.ok).toBeTruthy();
-  await expect(page.locator(`[data-card-id="${created.card_id}"]`)).toContainText("@Sam");
-  await expect(page.locator(`[data-card-id="${created.card_id}"]`)).toContainText("2026-09-04");
-  await expect(page.getByLabel("In Progress column").getByText("Ship dark mode toggle")).toBeVisible();
-  await expect(page.getByLabel("Priority of Ship dark mode toggle")).toHaveValue("urgent");
+  const card = page.locator(".card").filter({ hasText: "Ship dark mode toggle" });
+  await card.focus();
+  await expect(card).toHaveAttribute("data-agent-target", "true");
+  await expect(page.getByLabel("Focus Relay human-agent handoff")).toContainText("Ship dark mode toggle");
+
+  // Moving focus to agent chat must not lose the human's deliberately chosen context.
+  await page.locator(".activity-list").focus();
+  const current = await callTool(page, "get_current_card") as { ok: boolean; title: string; column: string };
+  expect(current).toMatchObject({ ok: true, title: "Ship dark mode toggle", column: "To Do" });
+
+  const updated = await callTool(page, "update_current_card", {
+    column: "In Progress",
+    assignee: "Sam",
+    priority: "urgent",
+    due_date: "2026-09-02",
+  }) as { ok: boolean; undo_scope: string; changes: Array<{ field: string }> };
+
+  expect(updated.ok).toBeTruthy();
+  expect(updated.undo_scope).toBe("entire_intent");
+  expect(updated.changes.map((change) => change.field).sort()).toEqual(["Assignee", "Column", "Due date", "Priority"]);
+  const movedCard = page.getByLabel("In Progress column").locator(".card").filter({ hasText: "Ship dark mode toggle" });
+  await expect(movedCard).toContainText("@Sam");
+  await expect(movedCard).toContainText("2026-09-02");
+  await expect(movedCard.getByLabel("Priority of Ship dark mode toggle")).toHaveValue("urgent");
+  await expect(movedCard).toHaveAttribute("data-agent-target", "true");
+
+  const receipt = page.locator(".activity-entry").filter({ hasText: "update_current_card" });
+  await expect(receipt.locator("dt").filter({ hasText: "Column" })).toBeVisible();
+  await expect(receipt).toContainText("To Do");
+  await expect(receipt).toContainText("In Progress");
+
+  await page.getByRole("button", { name: "Undo last agent action" }).click();
+  const restored = page.getByLabel("To Do column").locator(".card").filter({ hasText: "Ship dark mode toggle" });
+  await expect(restored).toContainText("@Alex");
+  await expect(restored).toContainText("2026-08-28");
+  await expect(restored.getByLabel("Priority of Ship dark mode toggle")).toHaveValue("high");
+  await expect(page.getByLabel("In Progress column").getByText("Ship dark mode toggle")).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
@@ -102,7 +127,7 @@ test("human can visibly undo an agent change without overwriting newer human wor
   const errors = await openBoard(page);
   const undoButton = page.getByRole("button", { name: "Undo last agent action" });
 
-  await expect(page.getByText("What’s on the board? Anything overdue or due this week?", { exact: false })).toBeVisible();
+  await expect(page.getByText("Move this to In Progress, assign Sam", { exact: false })).toBeVisible();
   await expect(undoButton).toBeDisabled();
 
   const created = await callTool(page, "create_card", { title: "Undo from the activity panel" }) as {
@@ -110,10 +135,13 @@ test("human can visibly undo an agent change without overwriting newer human wor
   };
   const createdCard = page.locator(`[data-card-id="${created.card_id}"]`);
   await expect(createdCard).toBeVisible();
+  await createdCard.focus();
+  await expect(createdCard).toHaveAttribute("data-agent-target", "true");
   await expect(undoButton).toBeEnabled();
 
   await undoButton.click();
   await expect(createdCard).toHaveCount(0);
+  await expect(page.getByLabel("Focus Relay human-agent handoff")).toContainText("Focus any card");
   await expect(page.getByRole("status", { name: "Undo result" })).toHaveText("Undid the latest agent change.");
   await expect(undoButton).toBeDisabled();
 
@@ -127,6 +155,20 @@ test("human can visibly undo an agent change without overwriting newer human wor
   await expect(page.getByRole("status", { name: "Undo result" })).toHaveText(
     "Undo blocked: newer human work was preserved.",
   );
+  expect(errors).toEqual([]);
+});
+
+test("deleting the focused card clears stale Focus Relay context", async ({ page }) => {
+  const errors = await openBoard(page);
+  const card = page.locator(".card").filter({ hasText: "Write keyboard nav docs" });
+  await card.focus();
+  const selected = await callTool(page, "get_current_card") as { ok: boolean; title: string };
+  expect(selected).toMatchObject({ ok: true, title: "Write keyboard nav docs" });
+
+  await callTool(page, "delete_card", { card_title: "Write keyboard nav docs" });
+  await expect(page.getByLabel("Focus Relay human-agent handoff")).toContainText("Focus any card");
+  const stale = await callTool(page, "update_current_card", { priority: "urgent" }) as { ok: boolean; reason: string };
+  expect(stale).toMatchObject({ ok: false, reason: "no_target" });
   expect(errors).toEqual([]);
 });
 

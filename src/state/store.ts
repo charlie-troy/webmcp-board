@@ -18,6 +18,33 @@ interface HistoryEntry {
   label: string;
 }
 
+export interface CardIntentPatch {
+  title?: string;
+  description?: string;
+  assignee?: string;
+  dueDate?: string;
+  priority?: Priority;
+  columnId?: string;
+  position?: number;
+}
+
+export interface IntentChange {
+  field: "Title" | "Description" | "Assignee" | "Due date" | "Priority" | "Column" | "Position";
+  before: string;
+  after: string;
+}
+
+export type ApplyCardIntentResult =
+  | {
+      ok: true;
+      cardId: string;
+      title: string;
+      column: string;
+      position: number;
+      changes: IntentChange[];
+    }
+  | { ok: false; reason: "card_not_found" | "column_not_found" | "invalid_title" | "invalid_date" | "no_changes" };
+
 export type UndoAgentResult =
   | { ok: true; label: string }
   | { ok: false; reason: "no_agent_action" }
@@ -37,8 +64,12 @@ interface BoardState {
   history: HistoryEntry[];
   /** Id of the most recently moved card, for a subtle highlight animation. */
   lastMovedCardId: string | null;
+  /** Last card deliberately focused by the human. Persists while focus moves to the agent chat. */
+  agentTargetCardId: string | null;
 
   resolveColumn: (columnId?: string) => Column;
+  setAgentTarget: (cardId: string | null) => boolean;
+  applyCardIntent: (cardId: string, patch: CardIntentPatch, source?: Source) => ApplyCardIntentResult;
   createCard: (input: CardInput, source?: Source) => Card;
   moveCard: (cardId: string, columnId: string, position?: number, source?: Source) => boolean;
   editCard: (
@@ -67,6 +98,7 @@ interface BoardState {
 
 export const useBoard = create<BoardState>((set, get) => {
   function mutate(source: Source, label: string, fn: (board: Board) => void) {
+    let changed = false;
     set((s) => {
       // Board objects are replaced, never mutated in place, so the current
       // immutable value is already a safe history snapshot. Avoid cloning the
@@ -77,11 +109,13 @@ export const useBoard = create<BoardState>((set, get) => {
       // Invalid and idempotent requests should not become misleading undo
       // points. Undo must always target the last real board change.
       if (JSON.stringify(before) === JSON.stringify(draft)) return s;
+      changed = true;
       return {
         board: draft,
         history: [...s.history, { snapshot: before, source, label }].slice(-100),
       };
     });
+    return changed;
   }
 
   function findCard(board: Board, cardId: string): { card: Card; column: Column; index: number } | null {
@@ -96,11 +130,116 @@ export const useBoard = create<BoardState>((set, get) => {
     board: defaultBoard(),
     history: [],
     lastMovedCardId: null,
+    agentTargetCardId: null,
 
     resolveColumn: (columnId) => {
       const { board } = get();
       const normalized = columnId?.trim().toLowerCase() ?? "";
       return board.columns.find((c) => c.id === normalized || c.title.toLowerCase() === normalized) ?? board.columns[0];
+    },
+
+    setAgentTarget: (cardId) => {
+      if (cardId !== null && !findCard(get().board, cardId)) return false;
+      if (get().agentTargetCardId === cardId) return true;
+      set({ agentTargetCardId: cardId });
+      return true;
+    },
+
+    applyCardIntent: (cardId, patch, source = "agent") => {
+      const beforeBoard = get().board;
+      const foundBefore = findCard(beforeBoard, cardId);
+      if (!foundBefore) return { ok: false, reason: "card_not_found" };
+
+      const title = patch.title?.trim().slice(0, 140);
+      if (patch.title != null && !title) return { ok: false, reason: "invalid_title" };
+      if (patch.dueDate != null && patch.dueDate !== "" && !isValidIsoDate(patch.dueDate)) {
+        return { ok: false, reason: "invalid_date" };
+      }
+
+      const normalizedColumn = patch.columnId?.trim().toLowerCase();
+      const targetBefore = normalizedColumn == null
+        ? foundBefore.column
+        : beforeBoard.columns.find(
+            (column) => column.id === normalizedColumn || column.title.toLowerCase() === normalizedColumn,
+          );
+      if (!targetBefore) return { ok: false, reason: "column_not_found" };
+
+      const changed = mutate(source, `update_current_card("${foundBefore.card.title}")`, (board) => {
+        const found = findCard(board, cardId);
+        if (!found) return;
+
+        if (patch.title != null) found.card.title = title!;
+        if (patch.description != null) found.card.description = patch.description.slice(0, 1000);
+        if (patch.assignee != null) found.card.assignee = patch.assignee.trim().slice(0, 60);
+        if (patch.dueDate != null) found.card.dueDate = patch.dueDate;
+        if (patch.priority != null) found.card.priority = patch.priority;
+
+        const target = board.columns.find((column) => column.id === targetBefore.id)!;
+        if (found.column.id !== target.id || patch.position != null) {
+          found.column.cards.splice(found.index, 1);
+          const position = patch.position == null
+            ? target.cards.length
+            : Math.max(0, Math.min(patch.position, target.cards.length));
+          target.cards.splice(position, 0, found.card);
+        }
+
+        // Priority order is a board invariant. It intentionally wins over an
+        // explicit position when both are supplied, and the final position is
+        // returned in the receipt.
+        if (patch.priority != null) {
+          target.cards.sort((a, z) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[z.priority]);
+        }
+      });
+
+      if (!changed) return { ok: false, reason: "no_changes" };
+
+      const foundAfter = findCard(get().board, cardId)!;
+      const display = (value: string, empty: string) => value || empty;
+      const changes: IntentChange[] = [];
+      if (foundBefore.card.title !== foundAfter.card.title) {
+        changes.push({ field: "Title", before: foundBefore.card.title, after: foundAfter.card.title });
+      }
+      if (foundBefore.card.description !== foundAfter.card.description) {
+        changes.push({
+          field: "Description",
+          before: display(foundBefore.card.description, "No description"),
+          after: display(foundAfter.card.description, "No description"),
+        });
+      }
+      if (foundBefore.card.assignee !== foundAfter.card.assignee) {
+        changes.push({
+          field: "Assignee",
+          before: display(foundBefore.card.assignee, "Unassigned"),
+          after: display(foundAfter.card.assignee, "Unassigned"),
+        });
+      }
+      if (foundBefore.card.dueDate !== foundAfter.card.dueDate) {
+        changes.push({
+          field: "Due date",
+          before: display(foundBefore.card.dueDate, "No due date"),
+          after: display(foundAfter.card.dueDate, "No due date"),
+        });
+      }
+      if (foundBefore.card.priority !== foundAfter.card.priority) {
+        changes.push({ field: "Priority", before: foundBefore.card.priority, after: foundAfter.card.priority });
+      }
+      if (foundBefore.column.id !== foundAfter.column.id) {
+        changes.push({ field: "Column", before: foundBefore.column.title, after: foundAfter.column.title });
+      }
+      const finalPosition = foundAfter.column.cards.findIndex((card) => card.id === cardId);
+      if (foundBefore.column.id === foundAfter.column.id && foundBefore.index !== finalPosition) {
+        changes.push({ field: "Position", before: String(foundBefore.index), after: String(finalPosition) });
+      }
+
+      set({ lastMovedCardId: foundBefore.column.id === foundAfter.column.id ? null : cardId });
+      return {
+        ok: true,
+        cardId,
+        title: foundAfter.card.title,
+        column: foundAfter.column.title,
+        position: finalPosition,
+        changes,
+      };
     },
 
     createCard: (input, source = "human") => {
@@ -240,6 +379,7 @@ export const useBoard = create<BoardState>((set, get) => {
         found.column.cards.splice(found.index, 1);
         deleted = true;
       });
+      if (deleted && get().agentTargetCardId === cardId) set({ agentTargetCardId: null });
       return deleted;
     },
 
@@ -310,7 +450,13 @@ export const useBoard = create<BoardState>((set, get) => {
         if (history.slice(i + 1).some((newer) => newer.source === "human")) {
           return { ok: false, reason: "newer_human_changes", label: entry.label };
         }
-        set({ board: entry.snapshot, history: history.slice(0, i), lastMovedCardId: null });
+        const targetId = get().agentTargetCardId;
+        set({
+          board: entry.snapshot,
+          history: history.slice(0, i),
+          lastMovedCardId: null,
+          agentTargetCardId: targetId && findCard(entry.snapshot, targetId) ? targetId : null,
+        });
         return { ok: true, label: entry.label };
       }
       return { ok: false, reason: "no_agent_action" };

@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test:e2e": "playwright test tests/board.spec.ts",
+    "test:e2e": "playwright test tests/board.spec.ts tests/focus-relay.spec.ts",
     "test:stress": "playwright test tests/stress.spec.ts tests/resilience.spec.ts --project=chromium",
     "test:release": "npm run lint && npm run build && npm run test:e2e && npm run test:stress"
   },

@@ -15,26 +15,45 @@ function summarize(value: unknown): string | null {
   }
 }
 
+interface DisplayChange {
+  field: string;
+  before: string;
+  after: string;
+}
+
+function extractChanges(value: unknown): DisplayChange[] {
+  if (value == null || typeof value !== "object") return [];
+  const changes = (value as Record<string, unknown>).changes;
+  if (!Array.isArray(changes)) return [];
+  return changes.filter((change): change is DisplayChange => {
+    if (change == null || typeof change !== "object") return false;
+    const item = change as Record<string, unknown>;
+    return typeof item.field === "string" && typeof item.before === "string" && typeof item.after === "string";
+  });
+}
+
 export function ActivityPanel() {
   const entries = useActivityStore((s) => s.entries);
   const clear = useActivityStore((s) => s.clear);
   const hasAgentAction = useBoard((s) => s.history.some((entry) => entry.source === "agent"));
   const undoLastAgentAction = useBoard((s) => s.undoLastAgentAction);
-  const [undoStatus, setUndoStatus] = useState("");
+  const [undoNotice, setUndoNotice] = useState<{ entryId?: number; message: string } | null>(null);
+  const latestEntryId = entries[0]?.id;
+  const undoStatus = undoNotice && undoNotice.entryId === latestEntryId ? undoNotice.message : "";
 
   function undoAgentAction() {
     const result = undoLastAgentAction();
     if (result.ok) {
-      setUndoStatus("Undid the latest agent change.");
+      setUndoNotice({ entryId: latestEntryId, message: "Undid the latest agent change." });
     } else if (result.reason === "newer_human_changes") {
-      setUndoStatus("Undo blocked: newer human work was preserved.");
+      setUndoNotice({ entryId: latestEntryId, message: "Undo blocked: newer human work was preserved." });
     } else {
-      setUndoStatus("No agent change is available to undo.");
+      setUndoNotice({ entryId: latestEntryId, message: "No agent change is available to undo." });
     }
   }
 
   return (
-    <aside className="activity-panel" aria-label="Agent activity log" aria-live="polite">
+    <aside className="activity-panel" aria-label="Agent activity and intent receipts">
       <div className="panel-title">
         <span>Agent Activity</span>
         <span className="panel-actions">
@@ -56,28 +75,51 @@ export function ActivityPanel() {
           {undoStatus}
         </div>
       )}
-      <div className="activity-list" tabIndex={0} aria-label="Agent activity entries">
+      <div
+        className="activity-list"
+        tabIndex={0}
+        role="log"
+        aria-live="polite"
+        aria-relevant="additions text"
+        aria-label="Agent activity entries"
+      >
         {entries.length === 0 && (
           <div className="activity-empty">
-            <p>No agent calls yet.</p>
-            <p className="hint">Try these prompts in order:</p>
+            <p className="empty-title">Try the Focus Relay handoff</p>
             <ol className="prompt-list">
-              <li>“What’s on the board? Anything overdue or due this week?”</li>
-              <li>“Move ‘Ship dark mode toggle’ to In Progress and set it to urgent.”</li>
-              <li>“Create ‘A11y audit of settings page’, assign it to Sam, due September 4th.”</li>
+              <li><span className="prompt-mode">Focus</span> Tab to “Ship dark mode toggle.”</li>
+              <li><span className="prompt-mode">Ask</span> “Move this to In Progress, assign Sam, make it urgent, due September 2nd.”</li>
+              <li><span className="prompt-mode">Undo</span> “Undo that entire change.”</li>
             </ol>
           </div>
         )}
-        {entries.map((e) => (
-          <div key={e.id} className={`activity-entry ${e.status}`}>
-            <div className="entry-head">
-              <span className="entry-status-dot" aria-hidden="true" />
-              <span className="entry-tool">{e.tool}</span>
-              <span className="entry-time">{new Date(e.timestamp).toLocaleTimeString([], { hour12: false })}</span>
+        {entries.map((e) => {
+          const changes = extractChanges(e.result);
+          return (
+            <div key={e.id} className={`activity-entry ${e.status}`}>
+              <div className="entry-head">
+                <span className="entry-status-dot" aria-hidden="true" />
+                <span className="entry-tool">{e.tool}</span>
+                <span className="entry-time">{new Date(e.timestamp).toLocaleTimeString([], { hour12: false })}</span>
+              </div>
+              {e.status !== "running" && (
+                <div className="entry-result">
+                  <span>{summarize(e.result)}</span>
+                  {changes.length > 0 && (
+                    <dl className="change-receipt" aria-label="Before and after changes">
+                      {changes.map((change) => (
+                        <div className="change-row" key={change.field}>
+                          <dt>{change.field}</dt>
+                          <dd><span>{change.before}</span><b aria-label="changed to">→</b><strong>{change.after}</strong></dd>
+                        </div>
+                      ))}
+                    </dl>
+                  )}
+                </div>
+              )}
             </div>
-            {e.status !== "running" && <div className="entry-result">{summarize(e.result)}</div>}
-          </div>
-        ))}
+          );
+        })}
       </div>
     </aside>
   );
