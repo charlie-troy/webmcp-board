@@ -38,9 +38,9 @@ Captions on. Record each section in one continuous take; the cut points are the 
 **VO:** "Even multi-field forms collapse into one instruction. And every action is announced in the Agent Activity panel — it's a live region, so a screen reader announces each change too. Sighted and blind users always know what the agent just did."
 
 ### 1:45–2:20 — Co-use
-**Visual:** Immediately after the agent-created card appears, type `Undo the last agent change.` Show the card disappear. Then use only the keyboard: open a card's full editor, briefly show its title / description / assignee / due date / priority fields, press **Escape** and show focus return to the card. Use **Left/Right** to move it between columns — show the focus ring staying with the card and the Focus queue updating.
-**Tool call:** `undo_last_agent_action`.
-**VO:** "The agent is never beyond undo: one call reverts its latest change, and it will never overwrite newer human work. The human interface still exposes every field without a mouse. Escape returns focus to the same card, Left and Right move it without dragging, and a live announcement confirms every human change."
+**Visual:** Immediately after the agent-created card appears, point to the now-enabled **Undo** button in Agent Activity and click it. Show the card disappear and the live confirmation. Then use only the keyboard: open a card's full editor, briefly show its title / description / assignee / due date / priority fields, press **Escape** and show focus return to the card. Use **Left/Right** to move it between columns — show the focus ring staying with the card and the Focus queue updating.
+**Shared operation:** the visible button uses the same conflict-safe undo path as `undo_last_agent_action`.
+**VO:** "The agent is never beyond undo: I can reverse its latest change right here, or ask it to undo. Either way, it will never overwrite newer human work. The human interface still exposes every field without a mouse. Escape returns focus to the same card, Left and Right move it without dragging, and a live announcement confirms every human change."
 
 ### 2:20–2:40 — Close
 **Visual:** Full board, Activity panel full of entries.

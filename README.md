@@ -19,8 +19,9 @@ interfaces. This app is that idea, productized:
   schema-described tool — no DOM scraping, no simulated clicks.
 - Every tool call is logged in an on-page **Agent Activity** panel (`aria-live="polite"`),
   so screen-reader and sighted users alike always know what the agent just did.
-- Agent undo is human-safe: it restores the latest agent change, but refuses to roll
-  back the board if a person has made a newer change.
+- Agent undo is human-safe and visible: users can ask the agent or press **Undo** in the
+  activity panel. It restores the latest agent change, but refuses to roll back the board
+  if a person has made a newer change.
 - The human interface remains primary and fully keyboard-operable: visible focus rings,
   skip link, ARIA labels on every control, and explicit arrow controls instead of
   drag-and-drop. Cards are focusable too: Tab to a card, then use Left/Right to move
@@ -49,7 +50,8 @@ interfaces. This app is that idea, productized:
 ## Try it with an agent
 
 Open the deployed site in ChatGPT's desktop browser (GPT-5.6 Sol/Terra) or Chrome with
-`chrome://flags/#enable-webmcp-testing` enabled, then ask:
+`chrome://flags/#enable-webmcp-testing` enabled. The activity panel displays this same
+three-step judge journey, so the demo is self-guided:
 
 > *"What's on the board? Anything overdue or due this week?"*
 > *"Move 'Ship dark mode toggle' to In Progress and set it to urgent."*

@@ -98,6 +98,38 @@ test("keyboard movement retains focus and human work blocks unsafe agent undo", 
   expect(errors).toEqual([]);
 });
 
+test("human can visibly undo an agent change without overwriting newer human work", async ({ page }) => {
+  const errors = await openBoard(page);
+  const undoButton = page.getByRole("button", { name: "Undo last agent action" });
+
+  await expect(page.getByText("What’s on the board? Anything overdue or due this week?", { exact: false })).toBeVisible();
+  await expect(undoButton).toBeDisabled();
+
+  const created = await callTool(page, "create_card", { title: "Undo from the activity panel" }) as {
+    card_id: string;
+  };
+  const createdCard = page.locator(`[data-card-id="${created.card_id}"]`);
+  await expect(createdCard).toBeVisible();
+  await expect(undoButton).toBeEnabled();
+
+  await undoButton.click();
+  await expect(createdCard).toHaveCount(0);
+  await expect(page.getByRole("status", { name: "Undo result" })).toHaveText("Undid the latest agent change.");
+  await expect(undoButton).toBeDisabled();
+
+  await callTool(page, "create_card", { title: "Preserve this agent card" });
+  const humanCard = page.locator(".card").filter({ hasText: "Audit color contrast on settings page" });
+  await humanCard.getByLabel("Priority of Audit color contrast on settings page").selectOption("urgent");
+  await undoButton.click();
+
+  await expect(page.getByRole("heading", { name: "Preserve this agent card" })).toBeVisible();
+  await expect(humanCard.getByLabel("Priority of Audit color contrast on settings page")).toHaveValue("urgent");
+  await expect(page.getByRole("status", { name: "Undo result" })).toHaveText(
+    "Undo blocked: newer human work was preserved.",
+  );
+  expect(errors).toEqual([]);
+});
+
 test("stale human dialogs resolve safely when an agent deletes the same card", async ({ page }) => {
   const errors = await openBoard(page);
   const title = "Write keyboard nav docs";

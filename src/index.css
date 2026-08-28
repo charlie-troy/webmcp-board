@@ -586,17 +586,48 @@ body {
   color: var(--text-dim);
   border-bottom: 1px solid var(--border);
 }
+.panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 .hint {
   font-weight: 400;
   text-transform: none;
   letter-spacing: 0;
   color: #bdc7d8;
 }
+.undo-agent-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-height: 28px;
+  padding: 3px 7px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--panel-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.undo-agent-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: #fff;
+}
+.undo-agent-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 .clear-btn {
   background: transparent;
   border: none;
   color: var(--text-dim);
   cursor: pointer;
+  min-width: 28px;
+  min-height: 28px;
 }
 .clear-btn:hover {
   color: var(--red);
@@ -614,6 +645,27 @@ body {
   font-size: 12px;
   padding: 12px 8px;
   line-height: 1.6;
+}
+.activity-empty p {
+  margin: 0 0 6px;
+}
+.prompt-list {
+  margin: 4px 0 0;
+  padding-left: 20px;
+  color: var(--text);
+}
+.prompt-list li {
+  margin-bottom: 8px;
+}
+.human-agent-status {
+  margin: 8px 8px 0;
+  padding: 7px 9px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--panel));
+  color: var(--text);
+  font-size: 11px;
+  line-height: 1.4;
 }
 .activity-entry {
   background: var(--panel-2);
