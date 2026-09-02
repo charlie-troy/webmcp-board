@@ -11,9 +11,15 @@
   --accent-soft: rgba(79, 209, 197, 0.14);
   --red: #fc8181;
 
-  font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
   font-size: 15px;
   color-scheme: dark;
+
+  /* Motion tokens: custom easings + snappy durations */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-fast: 160ms;
+  --dur-med: 240ms;
 }
 
 * {
@@ -190,6 +196,16 @@ body {
 .relay-active .relay-pulse {
   background: var(--accent);
   box-shadow: 0 0 0 4px rgba(79, 209, 197, 0.13);
+  animation: breathe 2.4s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px rgba(79, 209, 197, 0.08);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(79, 209, 197, 0.16);
+  }
 }
 .relay-target {
   display: grid;
@@ -244,10 +260,14 @@ body {
   cursor: pointer;
   font: inherit;
   font-size: 10px;
+  transition: transform var(--dur-fast) var(--ease-out), color var(--dur-fast) ease, border-color var(--dur-fast) ease;
 }
 .relay-clear:hover {
   border-color: var(--accent);
   color: var(--text);
+}
+.relay-clear:active {
+  transform: scale(0.96);
 }
 
 @media (max-width: 1050px) {
@@ -412,6 +432,41 @@ body {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 10px 12px;
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    border-color var(--dur-med) ease,
+    box-shadow var(--dur-med) ease;
+}
+/* Cards cascade into the board on first paint (one-time delight, not a
+   keyboard-visible transition: it never replays). */
+.column-cards .card {
+  animation: card-in 280ms var(--ease-out) backwards;
+}
+.column-cards .card:nth-child(1) { animation-delay: 20ms; }
+.column-cards .card:nth-child(2) { animation-delay: 60ms; }
+.column-cards .card:nth-child(3) { animation-delay: 100ms; }
+.column-cards .card:nth-child(4) { animation-delay: 140ms; }
+.column-cards .card:nth-child(5) { animation-delay: 180ms; }
+.column-cards .card:nth-child(6) { animation-delay: 220ms; }
+.column-cards .card:nth-child(7) { animation-delay: 260ms; }
+.column-cards .card:nth-child(8) { animation-delay: 300ms; }
+.column-cards .card:nth-child(9) { animation-delay: 340ms; }
+.column-cards .card:nth-child(10) { animation-delay: 380ms; }
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: #4a5568;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  }
+  .card.agent-target:hover {
+    border-color: rgba(79, 209, 197, 0.82);
+  }
 }
 .card:focus-visible {
   border-color: var(--accent);
@@ -424,15 +479,13 @@ body {
   box-shadow: inset 3px 0 0 var(--accent), 0 0 0 1px rgba(79, 209, 197, 0.08);
 }
 .card.just-moved {
-  animation: slide-in 0.35s ease-out;
+  animation: slide-in 260ms var(--ease-out);
   border-color: var(--accent);
 }
 @keyframes slide-in {
-  0% {
-    transform: translateX(-8px);
-  }
-  100% {
-    transform: translateX(0);
+  from {
+    transform: translateX(-10px);
+    opacity: 0.4;
   }
 }
 .card-top {
@@ -483,6 +536,10 @@ body {
   cursor: pointer;
   font-size: 13px;
   line-height: 1;
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) ease,
+    border-color var(--dur-fast) ease;
 }
 .mini:hover {
   color: var(--accent);
@@ -491,6 +548,9 @@ body {
 .mini.danger:hover {
   color: var(--red);
   border-color: var(--red);
+}
+.mini:active {
+  transform: scale(0.92);
 }
 .mini-select {
   background: var(--panel);
@@ -517,6 +577,23 @@ body {
 .card-dialog::backdrop {
   background: rgba(5, 8, 13, 0.78);
   backdrop-filter: blur(3px);
+}
+.card-dialog[open] {
+  animation: dialog-in 220ms var(--ease-out);
+}
+.card-dialog[open]::backdrop {
+  animation: backdrop-in 160ms ease-out;
+}
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+}
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
 }
 .card-form {
   display: flex;
@@ -559,6 +636,12 @@ body {
 .dialog-close:hover {
   color: var(--text);
   border-color: var(--border);
+}
+.dialog-close {
+  transition: transform var(--dur-fast) var(--ease-out), color var(--dur-fast) ease, border-color var(--dur-fast) ease;
+}
+.dialog-close:active {
+  transform: scale(0.92);
 }
 .form-field {
   display: flex;
@@ -642,6 +725,12 @@ body {
 }
 .button:hover {
   filter: brightness(1.08);
+}
+.button {
+  transition: transform var(--dur-fast) var(--ease-out), filter var(--dur-fast) ease;
+}
+.button:active {
+  transform: scale(0.97);
 }
 .confirm-dialog {
   width: min(430px, calc(100vw - 28px));
@@ -780,10 +869,14 @@ body {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-out), color var(--dur-fast) ease, border-color var(--dur-fast) ease;
 }
 .undo-agent-btn:hover:not(:disabled) {
   border-color: var(--accent);
   color: #fff;
+}
+.undo-agent-btn:active:not(:disabled) {
+  transform: scale(0.96);
 }
 .undo-agent-btn:disabled {
   opacity: 0.45;
@@ -796,9 +889,13 @@ body {
   cursor: pointer;
   min-width: 28px;
   min-height: 28px;
+  transition: transform var(--dur-fast) var(--ease-out), color var(--dur-fast) ease;
 }
 .clear-btn:hover {
   color: var(--red);
+}
+.clear-btn:active {
+  transform: scale(0.9);
 }
 .activity-list {
   overflow-y: auto;
@@ -855,14 +952,16 @@ body {
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 7px 9px;
-  animation: pop-in 0.18s ease-out;
+  animation: pop-in var(--dur-fast) var(--ease-out);
 }
 @keyframes pop-in {
   from {
-    transform: scale(0.96);
+    transform: scale(0.96) translateY(4px);
+    opacity: 0;
   }
   to {
-    transform: scale(1);
+    transform: scale(1) translateY(0);
+    opacity: 1;
   }
 }
 .entry-head {
